@@ -1,0 +1,21 @@
+# Next.js build output in theme
+/dist/
+
+# Frontend build output
+/frontend/.next/
+/frontend/out/
+/frontend/node_modules/
+
+# Environment files
+/frontend/.env.local
+/frontend/.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
