@@ -3,7 +3,7 @@
  * Kingdom.Training Theme Functions
  * 
  * This theme is designed to work as a headless WordPress installation,
- * serving content via the REST API to a Next.js frontend for Media to Disciple Making Movements training.
+ * serving content via the REST API to a React/Vite frontend for Media to Disciple Making Movements training.
  */
 
 // Enable REST API CORS

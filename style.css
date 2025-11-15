@@ -1,17 +1,17 @@
 /*
-Theme Name: Kingdom.Training - Headless Theme
+Theme Name: Kingdom.Training
 Theme URI: https://kingdom.training
 Author: Kingdom.Training
 Author URI: https://kingdom.training
-Description: A headless WordPress theme designed to work with a Next.js frontend. Provides REST API support for Strategy Courses, Articles, and Tools custom post types for Media to Disciple Making Movements training.
+Description: Vite + React + Tailwind CSS + WordPress REST API Theme for Kingdom.Training
 Version: 1.0.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: kingdom-training
-Tags: headless, rest-api, nextjs, react
+Tags: vite, react, tailwind, wordpress, rest-api
 
-This theme is designed to be used as a headless WordPress installation.
-The frontend is built with Next.js, React, and Tailwind CSS.
+This theme is designed to be used as a WordPress installation.
+The frontend is built with Vite, React, and Tailwind CSS.
 */
 
 body {
