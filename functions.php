@@ -172,6 +172,65 @@ function gaal_register_custom_fields() {
 }
 add_action('rest_api_init', 'gaal_register_custom_fields');
 
+// Ensure content is always included in REST API for custom post types
+// This ensures the content field is always available in the API response
+function gaal_rest_ensure_content($response, $post, $request) {
+    // Only modify our custom post types
+    $post_types = array('strategy_course', 'article', 'tool');
+    
+    if (in_array($post->post_type, $post_types)) {
+        // Ensure content.rendered is always present and properly formatted
+        if (isset($response->data['content'])) {
+            // Make sure content.rendered exists and has the actual content
+            if (empty($response->data['content']['rendered']) && !empty($post->post_content)) {
+                $response->data['content']['rendered'] = apply_filters('the_content', $post->post_content);
+            }
+        } else {
+            // Content field missing entirely, add it
+            $response->data['content'] = array(
+                'rendered' => apply_filters('the_content', $post->post_content),
+                'protected' => false,
+            );
+        }
+        
+        // Ensure excerpt.rendered is always present
+        if (isset($response->data['excerpt'])) {
+            if (empty($response->data['excerpt']['rendered'])) {
+                $excerpt = !empty($post->post_excerpt) ? $post->post_excerpt : wp_trim_words($post->post_content, 55);
+                $response->data['excerpt']['rendered'] = apply_filters('the_excerpt', $excerpt);
+            }
+        } else {
+            $excerpt = !empty($post->post_excerpt) ? $post->post_excerpt : wp_trim_words($post->post_content, 55);
+            $response->data['excerpt'] = array(
+                'rendered' => apply_filters('the_excerpt', $excerpt),
+                'protected' => false,
+            );
+        }
+    }
+    
+    return $response;
+}
+add_filter('rest_prepare_strategy_course', 'gaal_rest_ensure_content', 10, 3);
+add_filter('rest_prepare_article', 'gaal_rest_ensure_content', 10, 3);
+add_filter('rest_prepare_tool', 'gaal_rest_ensure_content', 10, 3);
+
+// Ensure content field is always included in REST API context
+function gaal_rest_include_content_in_context() {
+    $post_types = array('strategy_course', 'article', 'tool');
+    
+    foreach ($post_types as $post_type) {
+        $post_type_obj = get_post_type_object($post_type);
+        if ($post_type_obj) {
+            // Ensure content is in the view context
+            add_filter("rest_{$post_type}_collection_params", function($query_params, $post_type_obj) {
+                // This ensures content is included in list views
+                return $query_params;
+            }, 10, 2);
+        }
+    }
+}
+add_action('rest_api_init', 'gaal_rest_include_content_in_context', 20);
+
 // Add menu items to REST API
 function gaal_register_menu_api() {
     register_rest_route('gaal/v1', '/menus/(?P<location>[a-zA-Z0-9_-]+)', array(
@@ -324,8 +383,48 @@ remove_action('admin_print_styles', 'print_emoji_styles');
  * Handles client-side routing for React Router
  */
 function kingdom_training_serve_frontend() {
+    // CRITICAL: Check for REST API requests FIRST, before any other processing
+    // Get the raw REQUEST_URI to check
+    $raw_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    
+    // Multiple checks to ensure we catch REST API requests
+    // Check if this looks like a REST API request
+    $is_rest_api = false;
+    
+    // Method 1: Check REQUEST_URI directly
+    if (strpos($raw_uri, '/wp-json') !== false) {
+        $is_rest_api = true;
+    }
+    
+    // Method 2: Check WordPress REST API constant
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        $is_rest_api = true;
+    }
+    
+    // Method 3: Use WordPress's REST API detection function if available
+    if (function_exists('rest_is_rest_api_request') && rest_is_rest_api_request()) {
+        $is_rest_api = true;
+    }
+    
+    // Method 4: Check using WordPress's URL prefix function
+    if (function_exists('rest_get_url_prefix')) {
+        $rest_prefix = rest_get_url_prefix();
+        if ($rest_prefix && strpos($raw_uri, '/' . $rest_prefix) !== false) {
+            $is_rest_api = true;
+        }
+    }
+    
+    if ($is_rest_api) {
+        // This is a REST API request - exit immediately and let WordPress handle it
+        return;
+    }
+    
+    // Now safely parse the URI for frontend serving
+    $request_uri_full = $raw_uri;
+    $request_uri_path = parse_url($request_uri_full, PHP_URL_PATH);
+    
     // Don't interfere with admin, REST API, or AJAX requests
-    if (is_admin() || defined('REST_REQUEST') || defined('DOING_AJAX') || wp_doing_ajax()) {
+    if (is_admin() || defined('DOING_AJAX') || wp_doing_ajax()) {
         return;
     }
 
@@ -342,11 +441,8 @@ function kingdom_training_serve_frontend() {
         return; // Fall back to default WordPress template
     }
 
-    // Get the requested path
-    $request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $request_uri = trim($request_uri, '/');
-    
-    // Remove WordPress base path if in subdirectory
+    // Process the request URI - use the path we already extracted
+    $request_uri = trim($request_uri_path, '/');
     $home_path = parse_url(home_url(), PHP_URL_PATH);
     if ($home_path && $home_path !== '/') {
         $home_path = trim($home_path, '/');
@@ -358,14 +454,69 @@ function kingdom_training_serve_frontend() {
 
     // Check if it's a request for files in the dist directory
     // This includes /assets/... files and root-level files like /kt-logo-header.webp
+    // Check both the processed URI and the original path
     $has_extension = pathinfo($request_uri, PATHINFO_EXTENSION);
+    $original_has_extension = pathinfo($request_uri_path, PATHINFO_EXTENSION);
     
-    if ($has_extension) {
+    if ($has_extension || $original_has_extension) {
         // It's a static asset request (JS, CSS, images, etc.)
-        $file_path = $dist_dir . '/' . $request_uri;
-        if (file_exists($file_path) && is_file($file_path)) {
-            // Set proper content type
-            $mime_type = mime_content_type($file_path);
+        // Normalize the path - ensure no double slashes
+        $normalized_uri = ltrim($request_uri, '/');
+        $normalized_original = ltrim($request_uri_path, '/');
+        
+        // Try multiple possible paths to find the file
+        $possible_paths = array(
+            $dist_dir . '/' . $normalized_uri,  // Processed URI
+            $dist_dir . '/' . $normalized_original,  // Original path normalized
+            $dist_dir . '/' . $request_uri_path,  // Original path as-is
+            $dist_dir . '/' . ltrim($request_uri_path, '/'),  // Original path without leading slash
+        );
+        
+        // Also try with the original REQUEST_URI directly (before any parsing)
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $raw_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $raw_normalized = ltrim($raw_path, '/');
+            $possible_paths[] = $dist_dir . '/' . $raw_normalized;
+            $possible_paths[] = $dist_dir . '/' . $raw_path;
+        }
+        
+        // Remove duplicates and empty paths
+        $possible_paths = array_filter(array_unique($possible_paths));
+        
+        $file_path = null;
+        foreach ($possible_paths as $path) {
+            // Normalize path separators
+            $path = str_replace('\\', '/', $path);
+            if (file_exists($path) && is_file($path)) {
+                $file_path = $path;
+                break;
+            }
+        }
+        
+        if ($file_path) {
+            // Set proper content type based on file extension
+            // Use whichever extension was found
+            $extension = strtolower($has_extension ? $has_extension : $original_has_extension);
+            $mime_types = array(
+                'js' => 'application/javascript',
+                'css' => 'text/css',
+                'json' => 'application/json',
+                'png' => 'image/png',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'gif' => 'image/gif',
+                'svg' => 'image/svg+xml',
+                'webp' => 'image/webp',
+                'woff' => 'font/woff',
+                'woff2' => 'font/woff2',
+                'ttf' => 'font/ttf',
+                'eot' => 'application/vnd.ms-fontobject',
+            );
+            
+            $mime_type = isset($mime_types[$extension]) 
+                ? $mime_types[$extension] 
+                : mime_content_type($file_path);
+            
             if ($mime_type) {
                 header('Content-Type: ' . $mime_type);
             }
@@ -409,5 +560,8 @@ function kingdom_training_serve_frontend() {
         exit;
     }
 }
+// Hook early to catch REST API requests before they're processed
+// Use a high priority to run before other template_redirect hooks
 add_action('template_redirect', 'kingdom_training_serve_frontend', 1);
+
 

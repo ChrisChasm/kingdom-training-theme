@@ -14,7 +14,7 @@ export default function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
             <img 
-              src="/kt-logo-header.webp" 
+              src="https://ai.kingdom.training/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp" 
               alt="Kingdom.Training" 
               className="h-10 w-auto"
             />

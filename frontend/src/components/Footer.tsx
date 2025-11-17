@@ -16,7 +16,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center space-x-3 mb-4">
               <img 
-                src="/kt-logo-header.webp" 
+                src="https://ai.kingdom.training/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp" 
                 alt="Kingdom.Training" 
                 className="h-10 w-auto"
               />
