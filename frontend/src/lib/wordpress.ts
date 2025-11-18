@@ -77,12 +77,56 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
       },
     });
 
+    // Read response body once
+    const text = await response.text();
+    
+    // Check if response is HTML (likely a 404 page or redirect)
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      const contentType = response.headers.get('content-type');
+      console.error(`API returned HTML response from ${url}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        preview: text.substring(0, 500)
+      });
+      throw new Error(`API endpoint returned HTML instead of JSON. This usually means:
+1. The endpoint doesn't exist (404 page)
+2. WordPress REST API is disabled
+3. Permalink structure needs to be flushed (Settings > Permalinks > Save)
+4. Custom post types not properly registered
+5. Plugin conflict blocking REST API
+
+Check if the endpoint exists: ${url}`);
+    }
+
     if (!response.ok) {
+      // Try to parse as JSON for error details
+      try {
+        const errorData = JSON.parse(text);
+        console.error(`API request failed: ${response.status} ${response.statusText}`, errorData);
+      } catch {
+        console.error(`API request failed: ${response.status} ${response.statusText}`, text.substring(0, 200));
+      }
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    // Parse JSON response
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      // If JSON parsing fails and it's not HTML, provide helpful error
+      if (parseError instanceof SyntaxError) {
+        console.error(`JSON parse error from ${url}. Response preview:`, text.substring(0, 200));
+        throw new Error(`API endpoint returned invalid JSON. Check: ${url}`);
+      }
+      throw parseError;
+    }
   } catch (error) {
+    // If it's already our custom error, re-throw it
+    if (error instanceof Error && error.message.includes('HTML instead of JSON')) {
+      throw error;
+    }
+    
     console.error(`Error fetching from ${url}:`, error);
     throw error;
   }

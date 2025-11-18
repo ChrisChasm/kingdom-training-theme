@@ -55,6 +55,34 @@ function gaal_theme_setup() {
 }
 add_action('after_setup_theme', 'gaal_theme_setup');
 
+// Set permalink structure to "Post name" (/%postname%/)
+// This ensures REST API endpoints work correctly
+function gaal_set_permalink_structure() {
+    // Check if permalink structure is already set to post name
+    $current_structure = get_option('permalink_structure');
+    
+    // Post name structure is '/%postname%/'
+    if ($current_structure !== '/%postname%/') {
+        // Set permalink structure to post name
+        update_option('permalink_structure', '/%postname%/');
+        
+        // Flush rewrite rules to ensure changes take effect
+        flush_rewrite_rules(false);
+    }
+}
+// Run on theme activation (runs once when theme is activated)
+add_action('after_switch_theme', 'gaal_set_permalink_structure');
+// Run once on admin init to fix existing installations (only if not already set)
+// Use a transient to avoid running on every admin page load
+add_action('admin_init', function() {
+    $transient_key = 'gaal_permalink_structure_set';
+    if (!get_transient($transient_key)) {
+        gaal_set_permalink_structure();
+        // Set transient for 1 hour to avoid repeated checks
+        set_transient($transient_key, true, HOUR_IN_SECONDS);
+    }
+});
+
 // Register Custom Post Types
 function gaal_register_custom_post_types() {
     
