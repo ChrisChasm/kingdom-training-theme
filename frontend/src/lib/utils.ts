@@ -138,3 +138,19 @@ export function clearCourseProgress(): void {
   }
 }
 
+/**
+ * Convert a number (1-20) to its word representation
+ */
+export function numberToWord(num: number): string {
+  const words = [
+    'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'
+  ];
+  
+  if (num >= 1 && num <= 20) {
+    return words[num];
+  }
+  
+  return num.toString();
+}
+

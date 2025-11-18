@@ -128,7 +128,9 @@ export default function StrategyCourseDetailPage() {
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              {course.title.rendered}
+              {course.steps && course.steps >= 1 && course.steps <= 20
+                ? `${course.steps}. ${course.title.rendered}`
+                : course.title.rendered}
             </h1>
 
             {course.author_info && (
