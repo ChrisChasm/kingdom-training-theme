@@ -8,14 +8,14 @@
   }
   
   body {
-    @apply bg-white text-gray-800 antialiased;
+    @apply bg-background-50 text-gray-800 antialiased;
   }
 }
 
 @layer components {
   /* Custom component classes can go here */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200;
   }
   
   .btn-secondary {
@@ -24,6 +24,10 @@
   
   .card {
     @apply bg-white rounded-lg shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-lg;
+  }
+  
+  .card-bg {
+    @apply bg-background-50 rounded-lg shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-lg;
   }
   
   .container-custom {
@@ -36,5 +40,76 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Content typography styles for WordPress content */
+.prose p {
+  @apply my-6 leading-relaxed;
+}
+
+.prose h1 {
+  @apply text-4xl font-bold text-gray-900 mt-0 mb-4 leading-tight;
+}
+
+.prose h2 {
+  @apply text-3xl font-bold text-gray-900 mt-8 mb-4 leading-tight;
+}
+
+.prose h3 {
+  @apply text-2xl font-semibold text-gray-900 mt-6 mb-3 leading-snug;
+}
+
+.prose h4 {
+  @apply text-xl font-semibold text-gray-900 mt-6 mb-2 leading-snug;
+}
+
+.prose strong,
+.prose b {
+  @apply font-bold text-gray-900;
+}
+
+.prose a {
+  @apply text-primary-500 no-underline font-medium;
+}
+
+.prose a:hover {
+  @apply text-primary-600 underline;
+}
+
+.prose ul,
+.prose ol {
+  @apply my-6 pl-6;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose li {
+  @apply my-2;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary-500 pl-4 italic my-6 text-gray-700;
+}
+
+.prose code {
+  @apply bg-background-50 px-2 py-1 rounded text-sm font-semibold text-gray-900;
+}
+
+.prose pre {
+  @apply bg-background-50 p-4 rounded-lg overflow-x-auto my-6;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0;
+}
+
+.prose img {
+  @apply my-8 rounded-lg;
 }
 

@@ -30,7 +30,7 @@ export default function ToolsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function ToolsPage() {
       <PageHeader 
         title="Tools"
         description="Essential tools and resources for Media to Disciple Making Movements work. Discover Disciple.Tools—our free, open-source disciple relationship management system—and other practical resources designed specifically for M2DMM practitioners."
-        backgroundClass="bg-gradient-to-r from-primary-900 to-primary-700"
+        backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
       />
 
       <section className="py-16">

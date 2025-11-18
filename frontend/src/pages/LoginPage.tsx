@@ -61,7 +61,7 @@ export default function LoginPage() {
         <PageHeader 
           title="Logged In"
           description={`Welcome back, ${user.name}!`}
-          backgroundClass="bg-gradient-to-r from-primary-900 to-primary-700"
+          backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
         />
         <div className="container-custom py-16">
           <div className="max-w-md mx-auto">
@@ -83,7 +83,7 @@ export default function LoginPage() {
               <div className="space-y-4">
                 <a
                   href="/wp-admin"
-                  className="block w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
+                  className="block w-full px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors"
                 >
                   Go to WordPress Admin
                 </a>
@@ -106,7 +106,7 @@ export default function LoginPage() {
       <PageHeader 
         title="Login"
         description="Access the WordPress admin dashboard"
-        backgroundClass="bg-gradient-to-r from-primary-900 to-primary-700"
+        backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
       />
       <div className="container-custom py-16">
         <div className="max-w-md mx-auto">
@@ -151,7 +151,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
+                className="w-full px-6 py-3 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
               >
                 {loading ? 'Logging in...' : 'Log In'}
               </button>
@@ -160,7 +160,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <a
                 href="/wp-login.php?action=lostpassword"
-                className="text-sm text-primary-600 hover:text-primary-700"
+                className="text-sm text-primary-500 hover:text-primary-600"
               >
                 Forgot your password?
               </a>

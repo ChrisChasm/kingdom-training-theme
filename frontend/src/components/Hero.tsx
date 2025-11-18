@@ -21,11 +21,11 @@ export default function Hero({
   ctaLink = "/articles"
 }: HeroProps) {
   return (
-    <section className="bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 text-white">
+    <section className="bg-gradient-to-br from-secondary-900 via-secondary-800 to-secondary-700 text-white">
       <div className="container-custom py-20 md:py-32">
         <div className="max-w-4xl">
           {/* Subtitle */}
-          <p className="text-secondary-400 font-semibold mb-4 text-lg">
+          <p className="text-accent-500 font-semibold mb-4 text-lg">
             {subtitle}
           </p>
 
@@ -36,7 +36,7 @@ export default function Hero({
 
           {/* Description */}
           {description && (
-            <p className="text-xl text-blue-100 mb-8 leading-relaxed max-w-3xl">
+            <p className="text-xl text-secondary-100 mb-8 leading-relaxed max-w-3xl">
               {description}
             </p>
           )}
@@ -45,7 +45,7 @@ export default function Hero({
           <div className="flex flex-wrap gap-4">
             <Link 
               to={ctaLink}
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-base font-semibold rounded-lg text-white bg-transparent hover:bg-white hover:text-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
+              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-base font-semibold rounded-lg text-white bg-transparent hover:bg-white hover:text-secondary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
             >
               {ctaText}
             </Link>

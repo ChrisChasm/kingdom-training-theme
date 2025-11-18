@@ -12,7 +12,7 @@ interface PageHeaderProps {
 export default function PageHeader({ 
   title, 
   description,
-  backgroundClass = "bg-gradient-to-r from-primary-900 to-primary-700"
+  backgroundClass = "bg-gradient-to-r from-secondary-900 to-secondary-700"
 }: PageHeaderProps) {
   return (
     <section className={`${backgroundClass} text-white`}>
@@ -22,7 +22,7 @@ export default function PageHeader({
             {title}
           </h1>
           {description && (
-            <p className="text-xl text-blue-100 leading-relaxed">
+            <p className="text-xl text-secondary-100 leading-relaxed">
               {description}
             </p>
           )}

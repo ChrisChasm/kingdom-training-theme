@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getStrategyCourseBySlug, WordPressPost } from '@/lib/wordpress';
-import { formatDate } from '@/lib/utils';
 
 export default function StrategyCourseDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,7 +37,7 @@ export default function StrategyCourseDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -50,7 +49,7 @@ export default function StrategyCourseDetailPage() {
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Course Not Found</h1>
         <p className="text-gray-600 mb-8">The course you're looking for doesn't exist.</p>
-        <Link to="/strategy-courses" className="text-primary-600 hover:text-primary-700 font-medium">
+        <Link to="/strategy-courses" className="text-primary-500 hover:text-primary-600 font-medium">
           ← Back to Strategy Courses
         </Link>
       </div>
@@ -72,13 +71,10 @@ export default function StrategyCourseDetailPage() {
       <div className="container-custom py-12">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <div className="flex items-center text-sm text-gray-600 mb-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 mr-4">
+            <div className="mb-4">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                 Strategy Course
               </span>
-              <time dateTime={course.date}>
-                {formatDate(course.date)}
-              </time>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -104,7 +100,7 @@ export default function StrategyCourseDetailPage() {
           </div>
 
           <div 
-            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline"
+            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-p:my-6 prose-strong:text-gray-900 prose-strong:font-bold prose-a:text-primary-500 prose-a:no-underline hover:prose-a:underline prose-ul:my-6 prose-ol:my-6 prose-li:my-2"
             dangerouslySetInnerHTML={{ __html: course.content.rendered }}
           />
         </div>

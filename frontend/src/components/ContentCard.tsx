@@ -32,7 +32,7 @@ export default function ContentCard({ post, type }: ContentCardProps) {
       {/* Content */}
       <div className="p-6">
         {/* Title */}
-        <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary-600 transition-colors">
+        <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary-500 transition-colors">
           {post.title.rendered}
         </h3>
 
@@ -49,7 +49,7 @@ export default function ContentCard({ post, type }: ContentCardProps) {
         </p>
 
         {/* Read More Link */}
-        <span className="text-primary-600 font-medium text-sm group-hover:text-primary-700 inline-flex items-center">
+        <span className="text-primary-500 font-medium text-sm group-hover:text-primary-600 inline-flex items-center">
           Learn more
           <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

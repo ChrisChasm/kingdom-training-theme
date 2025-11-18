@@ -24,31 +24,31 @@ export default function Header() {
           <div className="flex items-center space-x-6">
             <Link
               to="/"
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              className="text-gray-700 hover:text-primary-500 font-medium transition-colors"
             >
               Home
             </Link>
             <Link
               to="/strategy-courses"
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              className="text-gray-700 hover:text-primary-500 font-medium transition-colors"
             >
               Strategy Course
             </Link>
             <Link
               to="/articles"
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              className="text-gray-700 hover:text-primary-500 font-medium transition-colors"
             >
               Articles
             </Link>
             <Link
               to="/tools"
-              className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+              className="text-gray-700 hover:text-primary-500 font-medium transition-colors"
             >
               Tools
             </Link>
             <Link
               to="/login"
-              className="text-gray-700 hover:text-primary-600 transition-colors"
+              className="text-gray-700 hover:text-primary-500 transition-colors"
               aria-label="Login"
             >
               <LogIn className="w-5 h-5" />

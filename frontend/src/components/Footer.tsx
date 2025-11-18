@@ -4,22 +4,19 @@
  */
 
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-secondary-900 text-secondary-100">
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand & Mission */}
           <div>
             <div className="flex items-center space-x-3 mb-4">
-              <img 
-                src="https://ai.kingdom.training/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp" 
-                alt="Kingdom.Training" 
-                className="h-10 w-auto"
-              />
+              <Logo textColor="white" className="h-10" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Training disciple makers to use media to accelerate Disciple Making Movements. 
@@ -58,7 +55,7 @@ export default function Footer() {
           {/* Mission Scripture */}
           <div>
             <h3 className="text-white font-semibold mb-4">Our Vision</h3>
-            <blockquote className="text-sm text-gray-400 italic leading-relaxed border-l-2 border-primary-500 pl-4">
+            <blockquote className="text-sm text-secondary-200 italic leading-relaxed border-l-2 border-primary-500 pl-4">
               &ldquo;Of the sons of Issachar, men who understood the times, with knowledge of what 
               Israel should do.&rdquo;
               <footer className="text-xs text-gray-500 mt-2">— 1 Chronicles 12:32</footer>
@@ -70,8 +67,8 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-          <p className="text-sm text-gray-400">
+        <div className="border-t border-secondary-800 mt-8 pt-8 text-center">
+          <p className="text-sm text-secondary-200">
             &copy; {currentYear} Kingdom.Training. All rights reserved.
           </p>
         </div>

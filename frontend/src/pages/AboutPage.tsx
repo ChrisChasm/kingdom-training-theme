@@ -30,7 +30,7 @@ export default function AboutPage() {
           </section>
 
           {/* Our Mission */}
-          <section className="mb-16 bg-gradient-to-br from-primary-50 to-secondary-50 p-8 rounded-lg">
+          <section className="mb-16 bg-gradient-to-br from-primary-50 to-background-50 p-8 rounded-lg">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
             <div className="prose prose-lg max-w-none">
               <p>
@@ -38,7 +38,7 @@ export default function AboutPage() {
                 strategically—identifying spiritual seekers online and connecting them with face-to-face 
                 disciplers who help them discover, obey, and share all that Jesus taught.
               </p>
-              <p className="text-primary-700 font-semibold">
+              <p className="text-primary-600 font-semibold">
                 We wonder what the Church could accomplish with technology God has given to this 
                 generation for the first time in history.
               </p>
@@ -84,24 +84,24 @@ export default function AboutPage() {
           </section>
 
           {/* Our Foundation */}
-          <section className="bg-primary-900 text-white p-8 rounded-lg">
+          <section className="bg-secondary-900 text-white p-8 rounded-lg">
             <h2 className="text-3xl font-bold mb-6">Our Foundation</h2>
             
-            <blockquote className="mb-6 pl-4 border-l-4 border-secondary-400">
+            <blockquote className="mb-6 pl-4 border-l-4 border-accent-500">
               <p className="text-lg italic leading-relaxed mb-2">
                 &ldquo;Of the sons of Issachar, men who understood the times, with knowledge of what 
                 Israel should do.&rdquo;
               </p>
-              <footer className="text-sm text-blue-200">— 1 Chronicles 12:32</footer>
+              <footer className="text-sm text-secondary-200">— 1 Chronicles 12:32</footer>
             </blockquote>
 
-            <blockquote className="pl-4 border-l-4 border-secondary-400">
+            <blockquote className="pl-4 border-l-4 border-accent-500">
               <p className="text-lg italic leading-relaxed mb-2">
                 &ldquo;Go and make disciples of all nations, baptizing them in the name of the Father 
                 and of the Son and of the Holy Spirit, and teaching them to obey everything I have 
                 commanded you. And surely I am with you always, to the very end of the age.&rdquo;
               </p>
-              <footer className="text-sm text-blue-200">— Matthew 28:19-20</footer>
+              <footer className="text-sm text-secondary-200">— Matthew 28:19-20</footer>
             </blockquote>
           </section>
         </div>

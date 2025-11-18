@@ -30,7 +30,7 @@ export default function ArticlesPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function ArticlesPage() {
       <PageHeader 
         title="Articles"
         description="Practical guidance, best practices, and real-world insights from the Media to Disciple Making Movements community. Learn from practitioners implementing M2DMM strategies around the world."
-        backgroundClass="bg-gradient-to-r from-primary-900 to-primary-700"
+        backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
       />
 
       <section className="py-16">
