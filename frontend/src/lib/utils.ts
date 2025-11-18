@@ -47,3 +47,94 @@ export function getReadingTime(text: string): number {
   return Math.ceil(wordCount / wordsPerMinute);
 }
 
+/**
+ * Course Progress Tracking
+ * Manages course step completion using localStorage
+ */
+
+const STORAGE_KEY = 'strategy_course_progress';
+
+/**
+ * Get all completed course step slugs from localStorage
+ */
+export function getCompletedSteps(): Set<string> {
+  if (typeof window === 'undefined') {
+    return new Set();
+  }
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const steps = JSON.parse(stored) as string[];
+      return new Set(steps);
+    }
+  } catch (error) {
+    console.error('Error reading course progress from localStorage:', error);
+  }
+
+  return new Set();
+}
+
+/**
+ * Mark a course step as completed by slug
+ */
+export function markStepCompleted(slug: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const completed = getCompletedSteps();
+    completed.add(slug);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(completed)));
+    
+    // Dispatch custom event to notify components of progress update
+    window.dispatchEvent(new Event('courseProgressUpdated'));
+  } catch (error) {
+    console.error('Error saving course progress to localStorage:', error);
+  }
+}
+
+/**
+ * Check if a course step is completed
+ */
+export function isStepCompleted(slug: string): boolean {
+  const completed = getCompletedSteps();
+  return completed.has(slug);
+}
+
+/**
+ * Get progress percentage for a list of course steps
+ */
+export function getProgressPercentage(stepSlugs: string[]): number {
+  if (stepSlugs.length === 0) return 0;
+  
+  const completed = getCompletedSteps();
+  const completedCount = stepSlugs.filter(slug => completed.has(slug)).length;
+  
+  return Math.round((completedCount / stepSlugs.length) * 100);
+}
+
+/**
+ * Get completed count for a list of course steps
+ */
+export function getCompletedCount(stepSlugs: string[]): number {
+  const completed = getCompletedSteps();
+  return stepSlugs.filter(slug => completed.has(slug)).length;
+}
+
+/**
+ * Clear all course progress (useful for testing or reset)
+ */
+export function clearCourseProgress(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing course progress from localStorage:', error);
+  }
+}
+

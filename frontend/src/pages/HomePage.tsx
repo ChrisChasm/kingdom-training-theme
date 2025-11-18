@@ -113,7 +113,7 @@ export default function HomePage() {
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              The MVP: Strategy Development Course
+              The MVP: Strategy Course
             </h2>
             <p className="text-xl text-secondary-100 mb-8 max-w-2xl mx-auto">
               Our flagship course guides you through 10 core elements needed to craft a Media to Disciple 
@@ -122,66 +122,72 @@ export default function HomePage() {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 text-left">
               <h3 className="text-xl font-semibold mb-4 text-accent-500">The 10-Step Curriculum:</h3>
               <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <Link 
-                  to="/strategy-courses/dmm-training-options" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  1. DMM Training Options
-                </Link>
-                <Link 
-                  to="/strategy-courses/create-a-vision-statement-for-your-m2dmm" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  2. Create a Vision Statement for Your M2DMM
-                </Link>
-                <Link 
-                  to="/strategy-courses/m2dmm-roles" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  3. M2DMM Roles
-                </Link>
-                <Link 
-                  to="/strategy-courses/create-a-prayer-strategy" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  4. Create a Prayer Strategy
-                </Link>
-                <Link 
-                  to="/strategy-courses/create-a-persona" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  5. Create a Persona
-                </Link>
-                <Link 
-                  to="/strategy-courses/identify-your-media-platform" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  6. Identify Your Media Platform
-                </Link>
-                <Link 
-                  to="/strategy-courses/pick-your-name-and-brand" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  7. Pick Your Name and Brand
-                </Link>
-                <Link 
-                  to="/strategy-courses/create-content" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  8. Create Content
-                </Link>
-                <Link 
-                  to="/strategy-courses/create-ads" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  9. Create Ads
-                </Link>
-                <Link 
-                  to="/strategy-courses/evaluate-your-m2dmm-strategy" 
-                  className="hover:text-accent-400 transition-colors"
-                >
-                  10. Evaluate Your M2DMM Strategy
-                </Link>
+                {/* Left Column: Steps 1-5 */}
+                <div className="flex flex-col gap-4">
+                  <Link 
+                    to="/strategy-courses/dmm-training-options" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    1. DMM Training Options
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/create-a-vision-statement-for-your-m2dmm" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    2. Create a Vision Statement for Your M2DMM
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/m2dmm-roles" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    3. M2DMM Roles
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/create-a-prayer-strategy" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    4. Create a Prayer Strategy
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/create-a-persona" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    5. Create a Persona
+                  </Link>
+                </div>
+                {/* Right Column: Steps 6-10 */}
+                <div className="flex flex-col gap-4">
+                  <Link 
+                    to="/strategy-courses/identify-your-media-platform" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    6. Identify Your Media Platform
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/pick-your-name-and-brand" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    7. Pick Your Name and Brand
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/create-content" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    8. Create Content
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/create-ads" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    9. Create Ads
+                  </Link>
+                  <Link 
+                    to="/strategy-courses/evaluate-your-m2dmm-strategy" 
+                    className="hover:text-accent-400 transition-colors"
+                  >
+                    10. Evaluate Your M2DMM Strategy
+                  </Link>
+                </div>
               </div>
             </div>
             <Link 

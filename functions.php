@@ -169,6 +169,29 @@ function gaal_register_custom_fields() {
             ),
         )
     );
+
+    // Add steps meta field to REST API for strategy courses
+    register_rest_field(
+        'strategy_course',
+        'steps',
+        array(
+            'get_callback' => function($object) {
+                $steps = get_post_meta($object['id'], 'steps', true);
+                return $steps ? intval($steps) : null;
+            },
+            'update_callback' => function($value, $object) {
+                if (is_numeric($value) && $value >= 1 && $value <= 20) {
+                    return update_post_meta($object->ID, 'steps', intval($value));
+                }
+                return false;
+            },
+            'schema' => array(
+                'description' => __('Step number (1-20) for ordering strategy course content', 'kingdom-training'),
+                'type' => 'integer',
+                'context' => array('view', 'edit'),
+            ),
+        )
+    );
 }
 add_action('rest_api_init', 'gaal_register_custom_fields');
 
@@ -358,6 +381,135 @@ function gaal_register_auth_api() {
     ));
 }
 add_action('rest_api_init', 'gaal_register_auth_api');
+
+// Add Steps meta box for Strategy Course post type
+function gaal_add_steps_meta_box() {
+    add_meta_box(
+        'steps_meta_box',
+        __('Step Number', 'kingdom-training'),
+        'gaal_steps_meta_box_callback',
+        'strategy_course',
+        'side',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'gaal_add_steps_meta_box');
+
+// Meta box callback function
+function gaal_steps_meta_box_callback($post) {
+    // Add nonce for security
+    wp_nonce_field('gaal_save_steps_meta_box', 'gaal_steps_meta_box_nonce');
+    
+    // Get current value
+    $steps = get_post_meta($post->ID, 'steps', true);
+    $steps = $steps ? intval($steps) : '';
+    
+    // Create dropdown
+    echo '<label for="steps_field">' . __('Select step number:', 'kingdom-training') . '</label>';
+    echo '<select name="steps_field" id="steps_field" style="width: 100%; margin-top: 5px;">';
+    echo '<option value="">' . __('None', 'kingdom-training') . '</option>';
+    
+    for ($i = 1; $i <= 20; $i++) {
+        $selected = ($steps == $i) ? 'selected="selected"' : '';
+        echo '<option value="' . esc_attr($i) . '" ' . $selected . '>' . esc_html($i) . '</option>';
+    }
+    
+    echo '</select>';
+    echo '<p class="description">' . __('Select a step number (1-20) to control the order of this course content.', 'kingdom-training') . '</p>';
+}
+
+// Save steps meta box data
+function gaal_save_steps_meta_box($post_id) {
+    // Check nonce
+    if (!isset($_POST['gaal_steps_meta_box_nonce']) || 
+        !wp_verify_nonce($_POST['gaal_steps_meta_box_nonce'], 'gaal_save_steps_meta_box')) {
+        return;
+    }
+    
+    // Check if this is an autosave
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+    
+    // Check user permissions
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+    
+    // Check if this is a strategy_course post type
+    if (get_post_type($post_id) !== 'strategy_course') {
+        return;
+    }
+    
+    // Save the meta field
+    if (isset($_POST['steps_field'])) {
+        $steps = sanitize_text_field($_POST['steps_field']);
+        
+        // Validate that it's a number between 1 and 20
+        if ($steps === '' || (is_numeric($steps) && intval($steps) >= 1 && intval($steps) <= 20)) {
+            if ($steps === '') {
+                delete_post_meta($post_id, 'steps');
+            } else {
+                update_post_meta($post_id, 'steps', intval($steps));
+            }
+        }
+    } else {
+        // If field is not set, delete the meta
+        delete_post_meta($post_id, 'steps');
+    }
+}
+add_action('save_post', 'gaal_save_steps_meta_box');
+
+// Add Steps column to Strategy Course admin list table
+function gaal_add_steps_column($columns) {
+    // Insert Steps column after Title
+    $new_columns = array();
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        if ($key === 'title') {
+            $new_columns['steps'] = __('Step', 'kingdom-training');
+        }
+    }
+    // If title column wasn't found, add steps at the beginning
+    if (!isset($new_columns['steps'])) {
+        $new_columns = array_merge(array('steps' => __('Step', 'kingdom-training')), $columns);
+    }
+    return $new_columns;
+}
+add_filter('manage_strategy_course_posts_columns', 'gaal_add_steps_column');
+
+// Populate Steps column with step number
+function gaal_populate_steps_column($column, $post_id) {
+    if ($column === 'steps') {
+        $steps = get_post_meta($post_id, 'steps', true);
+        if ($steps) {
+            echo '<strong>' . esc_html(intval($steps)) . '</strong>';
+        } else {
+            echo '<span style="color: #999;">—</span>';
+        }
+    }
+}
+add_action('manage_strategy_course_posts_custom_column', 'gaal_populate_steps_column', 10, 2);
+
+// Make Steps column sortable
+function gaal_make_steps_column_sortable($columns) {
+    $columns['steps'] = 'steps';
+    return $columns;
+}
+add_filter('manage_edit-strategy_course_sortable_columns', 'gaal_make_steps_column_sortable');
+
+// Handle sorting by steps meta field
+function gaal_sort_posts_by_steps($query) {
+    if (!is_admin() || !$query->is_main_query()) {
+        return;
+    }
+    
+    if ($query->get('orderby') === 'steps') {
+        $query->set('meta_key', 'steps');
+        $query->set('orderby', 'meta_value_num');
+    }
+}
+add_action('pre_get_posts', 'gaal_sort_posts_by_steps');
 
 // Disable the theme customizer (not needed for headless)
 function gaal_remove_customizer() {

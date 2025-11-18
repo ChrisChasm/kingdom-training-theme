@@ -4,7 +4,6 @@
  */
 
 import { Link } from 'react-router-dom';
-import Logo from './Logo';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,8 +14,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand & Mission */}
           <div>
-            <div className="flex items-center space-x-3 mb-4">
-              <Logo textColor="white" className="h-10" />
+            <div className="mb-4">
+              <h2 className="text-white text-2xl font-bold uppercase tracking-wide">
+                Kingdom Training
+              </h2>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Training disciple makers to use media to accelerate Disciple Making Movements. 

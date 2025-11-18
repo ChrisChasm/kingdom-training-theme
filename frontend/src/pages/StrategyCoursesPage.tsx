@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
+import ProgressIndicator from '@/components/ProgressIndicator';
 import { ChevronRight } from 'lucide-react';
 import { getStrategyCourses, WordPressPost } from '@/lib/wordpress';
 
-interface CourseStep {
+export interface CourseStep {
   number: number;
   title: string;
   slug: string;
 }
 
-const courseSteps: CourseStep[] = [
+export const courseSteps: CourseStep[] = [
   { number: 1, title: 'DMM Training Options', slug: 'dmm-training-options' },
   { number: 2, title: 'Create a Vision Statement for Your M2DMM', slug: 'create-a-vision-statement-for-your-m2dmm' },
   { number: 3, title: 'M2DMM Roles', slug: 'm2dmm-roles' },
@@ -117,21 +118,11 @@ export default function StrategyCoursesPage() {
             </div>
 
             {/* Progress Indicator */}
-            <div className="mt-12 p-6 bg-background-50 rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Your Progress</h3>
-                <span className="text-sm text-gray-600">0 of 10 steps completed</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-primary-500 h-3 rounded-full transition-all duration-300"
-                  style={{ width: '0%' }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-600 mt-3">
-                Start with Step 1 to begin your M2DMM strategy development journey.
-              </p>
-            </div>
+            <ProgressIndicator 
+              stepSlugs={mainStepSlugs}
+              totalSteps={courseSteps.length}
+              className="mt-12"
+            />
 
             {/* Call to Action */}
             <div className="mt-12 text-center">
