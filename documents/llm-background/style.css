@@ -1,0 +1,113 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0f172a; /* Dark slate/blue background */
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    overflow: hidden;
+}
+
+.llm-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.code-container {
+    width: 100%;
+    max-width: 1400px;
+    height: 100%;
+    padding: 4rem 2rem;
+    box-sizing: border-box;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #94a3b8; /* Default slate text */
+    
+    /* The soft focus and fade effect */
+    mask-image: linear-gradient(to bottom, 
+        transparent 0%, 
+        black 20%, 
+        black 80%, 
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(to bottom, 
+        transparent 0%, 
+        black 20%, 
+        black 80%, 
+        transparent 100%
+    );
+    
+    /* Initial state for animation */
+    animation: breathe 10s infinite ease-in-out;
+}
+
+/* Simulating the soft focus/out of focus effect */
+@keyframes breathe {
+    0% { 
+        filter: blur(1px); 
+        opacity: 0.7;
+    }
+    50% { 
+        filter: blur(2px); 
+        opacity: 0.5;
+    }
+    100% { 
+        filter: blur(1px); 
+        opacity: 0.7;
+    }
+}
+
+.code-line {
+    min-height: 1.6em; /* Prevent jumping */
+    margin-bottom: 2px;
+}
+
+/* Cursor Effect */
+.cursor {
+    display: inline-block;
+    width: 8px;
+    height: 1em;
+    background-color: #38bdf8; /* Light blue cursor */
+    margin-left: 4px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Syntax Highlighting - Soft/Cool Tone Palette */
+.keyword { color: #c084fc; }      /* Purple */
+.function { color: #60a5fa; }     /* Blue */
+.string { color: #a3e635; }       /* Lime Green */
+.comment { color: #475569; font-style: italic; } /* Dark Slate */
+.operator { color: #cbd5e1; }     /* Light Slate */
+.number { color: #f472b6; }       /* Pink */
+.class-name { color: #fbbf24; }   /* Amber */
+
+/* Optional: Add a slight scanline effect */
+.llm-background::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.1) 3px
+    );
+    pointer-events: none;
+}
+

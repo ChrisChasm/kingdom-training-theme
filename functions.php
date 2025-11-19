@@ -84,8 +84,56 @@ add_action('admin_init', function() {
 });
 
 // Register Custom Post Types
+// Register Custom Post Types and Taxonomies
 function gaal_register_custom_post_types() {
     
+    // Register Custom Taxonomies
+    
+    // Strategy Course Category
+    register_taxonomy('strategy_course_category', 'strategy_course', array(
+        'labels' => array(
+            'name' => __('Course Categories', 'kingdom-training'),
+            'singular_name' => __('Course Category', 'kingdom-training'),
+            'menu_name' => __('Categories', 'kingdom-training'),
+        ),
+        'hierarchical' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'show_in_rest' => true,
+        'rest_base' => 'strategy-course-categories',
+        'rewrite' => array('slug' => 'strategy-course-category'),
+    ));
+
+    // Article Category
+    register_taxonomy('article_category', 'article', array(
+        'labels' => array(
+            'name' => __('Article Categories', 'kingdom-training'),
+            'singular_name' => __('Article Category', 'kingdom-training'),
+            'menu_name' => __('Categories', 'kingdom-training'),
+        ),
+        'hierarchical' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'show_in_rest' => true,
+        'rest_base' => 'article-categories',
+        'rewrite' => array('slug' => 'article-category'),
+    ));
+
+    // Tool Category
+    register_taxonomy('tool_category', 'tool', array(
+        'labels' => array(
+            'name' => __('Tool Categories', 'kingdom-training'),
+            'singular_name' => __('Tool Category', 'kingdom-training'),
+            'menu_name' => __('Categories', 'kingdom-training'),
+        ),
+        'hierarchical' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
+        'show_in_rest' => true,
+        'rest_base' => 'tool-categories',
+        'rewrite' => array('slug' => 'tool-category'),
+    ));
+
     // Strategy Course Post Type
     register_post_type('strategy_course', array(
         'labels' => array(
@@ -106,7 +154,7 @@ function gaal_register_custom_post_types() {
         'menu_icon' => 'dashicons-book-alt',
         'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields', 'revisions'),
         'rewrite' => array('slug' => 'strategy-courses'),
-        'taxonomies' => array('category', 'post_tag'),
+        'taxonomies' => array('strategy_course_category', 'post_tag'),
     ));
 
     // Articles Post Type (enhanced from default posts)
@@ -129,7 +177,7 @@ function gaal_register_custom_post_types() {
         'menu_icon' => 'dashicons-media-document',
         'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields', 'author', 'revisions'),
         'rewrite' => array('slug' => 'articles'),
-        'taxonomies' => array('category', 'post_tag'),
+        'taxonomies' => array('article_category', 'post_tag'),
     ));
 
     // Tools Post Type
@@ -152,7 +200,7 @@ function gaal_register_custom_post_types() {
         'menu_icon' => 'dashicons-admin-tools',
         'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields', 'revisions'),
         'rewrite' => array('slug' => 'tools'),
-        'taxonomies' => array('category', 'post_tag'),
+        'taxonomies' => array('tool_category', 'post_tag'),
     ));
 }
 add_action('init', 'gaal_register_custom_post_types');

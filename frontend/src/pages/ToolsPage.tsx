@@ -1,30 +1,48 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
-import { getTools, WordPressPost } from '@/lib/wordpress';
+import Sidebar from '@/components/Sidebar';
+import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
 
 export default function ToolsPage() {
+  const [searchParams] = useSearchParams();
   const [tools, setTools] = useState<WordPressPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchTools() {
+    async function fetchData() {
+      setLoading(true);
       try {
-        const data = await getTools({ 
-          per_page: 100, 
-          orderby: 'date', 
-          order: 'desc' 
-        });
-        setTools(data);
+        const categoryId = searchParams.get('category');
+        const tagId = searchParams.get('tag');
+
+        const [toolsData, categoriesData, tagsData] = await Promise.all([
+          getTools({
+            per_page: 100,
+            orderby: 'date',
+            order: 'desc',
+            tool_categories: categoryId || undefined,
+            tags: tagId || undefined
+          }),
+          getToolCategories(),
+          getTags({ hide_empty: true, post_type: 'tools' })
+        ]);
+
+        setTools(toolsData);
+        setCategories(categoriesData);
+        setTags(tagsData);
       } catch (error) {
-        console.error('Error fetching tools:', error);
+        console.error('Error fetching data:', error);
         setTools([]);
       } finally {
         setLoading(false);
       }
     }
-    fetchTools();
-  }, []);
+    fetchData();
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -39,7 +57,7 @@ export default function ToolsPage() {
 
   return (
     <>
-      <PageHeader 
+      <PageHeader
         title="Tools"
         description="Essential tools and resources for Media to Disciple Making Movements work. Discover Disciple.Tools—our free, open-source disciple relationship management system—and other practical resources designed specifically for M2DMM practitioners."
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
@@ -47,23 +65,37 @@ export default function ToolsPage() {
 
       <section className="py-16">
         <div className="container-custom">
-          {tools.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {tools.map((tool) => (
-                <ContentCard key={tool.id} post={tool} type="tools" />
-              ))}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+            {/* Sidebar */}
+            <div className="lg:col-span-1">
+              <Sidebar
+                categories={categories}
+                tags={tags}
+                basePath="/tools"
+              />
             </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🛠️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                No Tools Yet
-              </h3>
-              <p className="text-gray-600">
-                Tools will be published here soon. Check back later!
-              </p>
+
+            {/* Main Content */}
+            <div className="lg:col-span-3">
+              {tools.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {tools.map((tool) => (
+                    <ContentCard key={tool.id} post={tool} type="tools" />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-gray-50 rounded-lg">
+                  <div className="text-6xl mb-4">🛠️</div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    No Tools Found
+                  </h3>
+                  <p className="text-gray-600">
+                    Try adjusting your filters or check back later.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </section>
     </>

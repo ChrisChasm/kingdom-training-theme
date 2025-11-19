@@ -62,12 +62,33 @@ export interface SiteInfo {
   logo: string | null;
 }
 
+export interface Category {
+  id: number;
+  count: number;
+  description: string;
+  link: string;
+  name: string;
+  slug: string;
+  taxonomy: string;
+  parent: number;
+}
+
+export interface Tag {
+  id: number;
+  count: number;
+  description: string;
+  link: string;
+  name: string;
+  slug: string;
+  taxonomy: string;
+}
+
 /**
  * Generic fetch wrapper with error handling
  */
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
-  
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -79,7 +100,7 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
     // Read response body once
     const text = await response.text();
-    
+
     // Check if response is HTML (likely a 404 page or redirect)
     if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
       const contentType = response.headers.get('content-type');
@@ -126,7 +147,7 @@ Check if the endpoint exists: ${url}`);
     if (error instanceof Error && error.message.includes('HTML instead of JSON')) {
       throw error;
     }
-    
+
     console.error(`Error fetching from ${url}:`, error);
     throw error;
   }
@@ -195,11 +216,17 @@ export async function getStrategyCourses(params: {
   page?: number;
   orderby?: string;
   order?: 'asc' | 'desc';
+  strategy_course_categories?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[key] = String(value);
+        // Map strategy_course_categories to the REST API parameter (rest_base)
+        if (key === 'strategy_course_categories') {
+          acc['strategy-course-categories'] = String(value);
+        } else {
+          acc[key] = String(value);
+        }
       }
       return acc;
     }, {} as Record<string, string>)
@@ -229,11 +256,18 @@ export async function getArticles(params: {
   page?: number;
   orderby?: string;
   order?: 'asc' | 'desc';
+  article_categories?: string;
+  tags?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[key] = String(value);
+        // Map article_categories to the REST API parameter (rest_base)
+        if (key === 'article_categories') {
+          acc['article-categories'] = String(value);
+        } else {
+          acc[key] = String(value);
+        }
       }
       return acc;
     }, {} as Record<string, string>)
@@ -263,11 +297,18 @@ export async function getTools(params: {
   page?: number;
   orderby?: string;
   order?: 'asc' | 'desc';
+  tool_categories?: string;
+  tags?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[key] = String(value);
+        // Map tool_categories to the REST API parameter (rest_base)
+        if (key === 'tool_categories') {
+          acc['tool-categories'] = String(value);
+        } else {
+          acc[key] = String(value);
+        }
       }
       return acc;
     }, {} as Record<string, string>)
@@ -295,12 +336,12 @@ export async function getToolBySlug(slug: string): Promise<WordPressPost | null>
  */
 export async function getOrderedCourseSteps(): Promise<WordPressPost[]> {
   try {
-    const allCourses = await getStrategyCourses({ 
+    const allCourses = await getStrategyCourses({
       per_page: 100,
       orderby: 'date',
       order: 'desc'
     });
-    
+
     // Filter courses that have a steps meta field and sort by steps number
     const coursesWithSteps = allCourses
       .filter(course => course.steps !== null && course.steps !== undefined && course.steps >= 1 && course.steps <= 20)
@@ -309,7 +350,7 @@ export async function getOrderedCourseSteps(): Promise<WordPressPost[]> {
         const stepB = b.steps || 0;
         return stepA - stepB;
       });
-    
+
     return coursesWithSteps;
   } catch (error) {
     console.error('Error fetching ordered course steps:', error);
@@ -335,6 +376,118 @@ export async function getPageBySlug(slug: string): Promise<WordPressPost | null>
     console.error(`Error fetching page ${slug}:`, error);
     return null;
   }
+}
+
+/**
+ * Get categories
+ */
+export async function getCategories(params: {
+  per_page?: number;
+  page?: number;
+  orderby?: string;
+  order?: 'asc' | 'desc';
+  hide_empty?: boolean;
+  post_type?: string; // Filter by post type (custom implementation needed on WP side if not standard)
+} = {}): Promise<Category[]> {
+  const queryParams = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>)
+  );
+
+  return fetchAPI(`/wp/v2/categories?${queryParams.toString()}`);
+}
+
+/**
+ * Get article categories
+ */
+export async function getArticleCategories(params: {
+  per_page?: number;
+  page?: number;
+  orderby?: string;
+  order?: 'asc' | 'desc';
+  hide_empty?: boolean;
+} = {}): Promise<Category[]> {
+  const queryParams = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>)
+  );
+
+  return fetchAPI(`/wp/v2/article-categories?${queryParams.toString()}`);
+}
+
+/**
+ * Get tool categories
+ */
+export async function getToolCategories(params: {
+  per_page?: number;
+  page?: number;
+  orderby?: string;
+  order?: 'asc' | 'desc';
+  hide_empty?: boolean;
+} = {}): Promise<Category[]> {
+  const queryParams = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>)
+  );
+
+  return fetchAPI(`/wp/v2/tool-categories?${queryParams.toString()}`);
+}
+
+/**
+ * Get strategy course categories
+ */
+export async function getStrategyCourseCategories(params: {
+  per_page?: number;
+  page?: number;
+  orderby?: string;
+  order?: 'asc' | 'desc';
+  hide_empty?: boolean;
+} = {}): Promise<Category[]> {
+  const queryParams = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>)
+  );
+
+  return fetchAPI(`/wp/v2/strategy-course-categories?${queryParams.toString()}`);
+}
+
+/**
+ * Get tags
+ */
+export async function getTags(params: {
+  per_page?: number;
+  page?: number;
+  orderby?: string;
+  order?: 'asc' | 'desc';
+  hide_empty?: boolean;
+  post_type?: string;
+} = {}): Promise<Tag[]> {
+  const queryParams = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {} as Record<string, string>)
+  );
+
+  return fetchAPI(`/wp/v2/tags?${queryParams.toString()}`);
 }
 
 /**
