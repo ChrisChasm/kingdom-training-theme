@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { login, logout, getCurrentUser, User } from '@/lib/auth';
 import PageHeader from '@/components/PageHeader';
+import NeuralBackground from '@/components/NeuralBackground';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -58,7 +59,7 @@ export default function LoginPage() {
   if (user) {
     return (
       <>
-        <PageHeader 
+        <PageHeader
           title="Logged In"
           description={`Welcome back, ${user.name}!`}
           backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
@@ -79,7 +80,7 @@ export default function LoginPage() {
                 </h2>
                 <p className="text-gray-600">{user.email}</p>
               </div>
-              
+
               <div className="space-y-4">
                 <a
                   href="/wp-admin"
@@ -103,10 +104,10 @@ export default function LoginPage() {
 
   return (
     <>
-      <PageHeader 
+      <PageHeader
         title="Login"
-        description="Access the WordPress admin dashboard"
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
+        backgroundComponent={<NeuralBackground />}
       />
       <div className="container-custom py-16">
         <div className="max-w-md mx-auto">
