@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import Hero from '@/components/Hero';
 import ContentCard from '@/components/ContentCard';
-import { getArticles, getStrategyCourses, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
+import NewsletterCTA from '@/components/NewsletterCTA';
+import { getArticles, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
 import { Link } from 'react-router-dom';
 
 export default function HomePage() {
   const [articles, setArticles] = useState<WordPressPost[]>([]);
-  const [courses, setCourses] = useState<WordPressPost[]>([]);
   const [tools, setTools] = useState<WordPressPost[]>([]);
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,14 +14,12 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [articlesData, coursesData, toolsData, orderedSteps] = await Promise.all([
+        const [articlesData, toolsData, orderedSteps] = await Promise.all([
           getArticles({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
-          getStrategyCourses({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
           getTools({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
           getOrderedCourseSteps().catch(() => []),
         ]);
         setArticles(articlesData);
-        setCourses(coursesData);
         setTools(toolsData);
         setCourseSteps(orderedSteps);
       } catch (error) {
@@ -93,20 +91,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Canvas Placeholder Section */}
-      <section className="relative w-full bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-800">
-        <canvas 
-          id="interactive-canvas"
-          className="w-full h-[400px] md:h-[500px] lg:h-[600px]"
-          style={{ display: 'block' }}
-        />
-        {/* Placeholder overlay - remove when canvas is implemented */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center text-white/20">
-            <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-            </svg>
-            <p className="text-sm font-medium">Interactive Canvas Placeholder</p>
+      {/* Video Section */}
+      <section className="relative w-full bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-800 py-16">
+        <div className="container-custom">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-8">
+              What is media to movement?
+            </h2>
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src="https://player.vimeo.com/video/436776178?title=0&byline=0&portrait=0"
+                className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
+                frameBorder="0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                title="Kingdom Training Video"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -167,38 +168,6 @@ export default function HomePage() {
               Enroll in The MVP Course
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Featured Strategy Courses */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">Strategy Courses</h2>
-            <Link 
-              to="/strategy-courses" 
-              className="text-primary-500 hover:text-primary-600 font-medium"
-            >
-              View all →
-            </Link>
-          </div>
-          {courses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.map((course) => (
-                <ContentCard key={course.id} post={course} type="strategy-courses" />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-background-50 rounded-lg">
-              <p className="text-gray-600 mb-4">Strategy courses will appear here once content is added to WordPress.</p>
-              <Link 
-                to="/strategy-courses"
-                className="text-primary-500 hover:text-primary-600 font-medium"
-              >
-                Browse all courses →
-              </Link>
-            </div>
-          )}
         </div>
       </section>
 
@@ -265,6 +234,15 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Newsletter CTA Section */}
+      <NewsletterCTA 
+        variant="banner"
+        title="Stay Connected"
+        description="Get the latest training resources, articles, and insights delivered directly to your inbox."
+        showEmailInput={true}
+        className="my-0"
+      />
 
       {/* Mission/Foundation Section */}
       <section className="py-20 bg-primary-800 text-white">

@@ -36,8 +36,8 @@ export default function ContentCard({ post, type }: ContentCardProps) {
           {post.title.rendered}
         </h3>
 
-        {/* Date */}
-        {post.date && (
+        {/* Date - Hidden for articles and tools */}
+        {post.date && type !== 'articles' && type !== 'tools' && (
           <p className="text-sm text-gray-500 mb-3">
             {formatDate(post.date)}
           </p>

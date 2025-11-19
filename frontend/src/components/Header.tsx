@@ -4,7 +4,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogIn, Mail } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -45,6 +45,13 @@ export default function Header() {
               className="text-gray-700 hover:text-primary-500 font-medium transition-colors"
             >
               Tools
+            </Link>
+            <Link
+              to="/newsletter"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Newsletter</span>
             </Link>
             <Link
               to="/login"

@@ -50,6 +50,11 @@ export default function Footer() {
                   About
                 </Link>
               </li>
+              <li>
+                <Link to="/newsletter" className="text-sm hover:text-white transition-colors">
+                  Newsletter
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -68,8 +73,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-secondary-800 mt-8 pt-8 text-center">
-          <p className="text-sm text-secondary-200">
+        <div className="border-t border-secondary-800 mt-8 pt-8">
+          <div className="text-center mb-6">
+            <Link
+              to="/newsletter"
+              className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors"
+            >
+              Subscribe to Newsletter
+            </Link>
+          </div>
+          <p className="text-sm text-secondary-200 text-center">
             &copy; {currentYear} Kingdom.Training. All rights reserved.
           </p>
         </div>

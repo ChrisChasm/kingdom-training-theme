@@ -64,7 +64,7 @@ export default function StrategyCoursesPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                The MVP: Strategy Development Course
+                The MVP: Strategy Course
               </h2>
               <p className="text-lg text-gray-700 leading-relaxed">
                 Our flagship course guides you through 10 core elements needed to craft a Media to Disciple 

@@ -10,6 +10,7 @@ import ToolsPage from './pages/ToolsPage';
 import ToolDetailPage from './pages/ToolDetailPage';
 import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/LoginPage';
+import NewsletterPage from './pages/NewsletterPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           <Route path="/tools/:slug" element={<ToolDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/newsletter" element={<NewsletterPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

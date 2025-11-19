@@ -337,3 +337,28 @@ export async function getPageBySlug(slug: string): Promise<WordPressPost | null>
   }
 }
 
+/**
+ * Subscribe to newsletter
+ */
+export async function subscribeToNewsletter(email: string, name?: string): Promise<void> {
+  const response = await fetch(`${API_URL}/gaal/v1/newsletter/subscribe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email,
+      name: name || '',
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const errorMessage = data.message || data.code || 'Failed to subscribe to newsletter';
+    throw new Error(errorMessage);
+  }
+
+  return;
+}
+

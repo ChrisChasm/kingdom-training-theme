@@ -410,6 +410,89 @@ function gaal_register_auth_api() {
 }
 add_action('rest_api_init', 'gaal_register_auth_api');
 
+// Register Newsletter Subscription API endpoint
+function gaal_register_newsletter_api() {
+    // Newsletter subscription endpoint
+    register_rest_route('gaal/v1', '/newsletter/subscribe', array(
+        'methods' => 'POST',
+        'callback' => function($request) {
+            $email = sanitize_email($request->get_param('email'));
+            $name = sanitize_text_field($request->get_param('name'));
+            
+            // Validate email
+            if (empty($email) || !is_email($email)) {
+                return new WP_Error('invalid_email', 'Please provide a valid email address', array('status' => 400));
+            }
+            
+            // Check if email already exists
+            $existing_subscribers = get_option('gaal_newsletter_subscribers', array());
+            foreach ($existing_subscribers as $subscriber) {
+                if (isset($subscriber['email']) && strtolower($subscriber['email']) === strtolower($email)) {
+                    return new WP_Error('already_subscribed', 'This email is already subscribed to our newsletter', array('status' => 409));
+                }
+            }
+            
+            // Add to subscribers list
+            $subscribers = get_option('gaal_newsletter_subscribers', array());
+            $subscriber_data = array(
+                'email' => $email,
+                'name' => $name,
+                'subscribed_at' => current_time('mysql'),
+                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+            );
+            
+            // Store subscriber data
+            $subscribers[] = $subscriber_data;
+            update_option('gaal_newsletter_subscribers', $subscribers);
+            
+            // Optional: Send notification email to admin
+            $admin_email = get_option('admin_email');
+            $subject = sprintf(__('New Newsletter Subscription: %s', 'kingdom-training'), $email);
+            $message = sprintf(
+                __("A new subscriber has joined the newsletter:\n\nEmail: %s\nName: %s\nDate: %s", 'kingdom-training'),
+                $email,
+                $name ?: __('Not provided', 'kingdom-training'),
+                current_time('mysql')
+            );
+            wp_mail($admin_email, $subject, $message);
+            
+            // Optional: Send welcome email to subscriber
+            $welcome_subject = __('Welcome to Kingdom Training Newsletter', 'kingdom-training');
+            $welcome_message = sprintf(
+                __("Thank you for subscribing to the Kingdom Training newsletter!\n\nWe're excited to share training resources, articles, and insights on Media to Disciple Making Movements with you.\n\nYou'll receive regular updates delivered directly to your inbox.\n\nBlessings,\nThe Kingdom Training Team", 'kingdom-training')
+            );
+            wp_mail($email, $welcome_subject, $welcome_message);
+            
+            return array(
+                'success' => true,
+                'message' => 'Successfully subscribed to newsletter',
+                'email' => $email,
+            );
+        },
+        'permission_callback' => '__return_true',
+    ));
+    
+    // Get newsletter subscribers (admin only)
+    register_rest_route('gaal/v1', '/newsletter/subscribers', array(
+        'methods' => 'GET',
+        'callback' => function($request) {
+            // Check if user is admin
+            if (!current_user_can('manage_options')) {
+                return new WP_Error('forbidden', 'You do not have permission to view subscribers', array('status' => 403));
+            }
+            
+            $subscribers = get_option('gaal_newsletter_subscribers', array());
+            return array(
+                'success' => true,
+                'count' => count($subscribers),
+                'subscribers' => $subscribers,
+            );
+        },
+        'permission_callback' => '__return_true',
+    ));
+}
+add_action('rest_api_init', 'gaal_register_newsletter_api');
+
 // Add Steps meta box for Strategy Course post type
 function gaal_add_steps_meta_box() {
     add_meta_box(
