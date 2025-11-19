@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Hero from '@/components/Hero';
 import ContentCard from '@/components/ContentCard';
 import NewsletterCTA from '@/components/NewsletterCTA';
+import NeuralBackground from '@/components/NeuralBackground';
 import { getArticles, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
 import { Link } from 'react-router-dom';
 
@@ -110,8 +111,9 @@ export default function HomePage() {
 
 
       {/* The MVP Course Feature - Primary Conversion */}
-      <section className="py-20 bg-gradient-to-br from-secondary-900 to-secondary-700 text-white">
-        <div className="container-custom">
+      <section className="relative py-20 bg-gradient-to-br from-secondary-900 to-secondary-700 text-white overflow-hidden">
+        <NeuralBackground />
+        <div className="container-custom relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
               The MVP: Strategy Course

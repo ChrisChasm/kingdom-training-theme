@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import ProgressIndicator from '@/components/ProgressIndicator';
+import NeuralBackground from '@/components/NeuralBackground';
 import { ChevronRight } from 'lucide-react';
 import { getStrategyCourses, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
 
@@ -56,6 +57,7 @@ export default function StrategyCoursesPage() {
         title="Strategy Course"
         description="Comprehensive training to craft your Media to Disciple Making Movements strategy. Follow the 10-step program below to develop your complete M2DMM strategy."
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
+        backgroundComponent={<NeuralBackground />}
       />
 
       {/* Course Overview */}

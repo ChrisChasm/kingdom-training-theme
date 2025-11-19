@@ -10,8 +10,8 @@ export default function NeuralBackground() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let width = canvas.offsetWidth;
-        let height = canvas.offsetHeight;
+        let width: number;
+        let height: number;
         let animationFrameId: number;
         // Particle Class
         class Particle {
@@ -71,20 +71,46 @@ export default function NeuralBackground() {
         const rotationSpeed = 0.001; // Radians per frame
         let globalAngle = 0;
 
-        // Resize handling
+        // Resize handling - use parent dimensions if available, otherwise window
         const resize = () => {
             if (!canvas) return;
             const parent = canvas.parentElement;
-            if (parent) {
+            if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
                 width = parent.clientWidth;
                 height = parent.clientHeight;
-                canvas.width = width;
-                canvas.height = height;
+            } else {
+                // Fallback to window dimensions
+                width = window.innerWidth;
+                height = window.innerHeight;
+            }
+            // Set canvas size (this also clears the canvas)
+            canvas.width = width;
+            canvas.height = height;
+        };
+
+        // Use ResizeObserver for more reliable parent dimension tracking
+        let resizeObserver: ResizeObserver | null = null;
+        
+        // Set up ResizeObserver after ensuring parent exists
+        const setupResizeObserver = () => {
+            const parent = canvas.parentElement;
+            if (parent && typeof ResizeObserver !== 'undefined') {
+                resizeObserver = new ResizeObserver(() => {
+                    resize();
+                });
+                resizeObserver.observe(parent);
             }
         };
 
         window.addEventListener('resize', resize);
-        resize();
+        
+        // Initial setup - ensure DOM is ready
+        requestAnimationFrame(() => {
+            resize(); // Set dimensions first
+            setupResizeObserver(); // Then set up observer
+            init(); // Then initialize particles
+            animate(); // Finally start animation
+        });
 
         function init() {
             particles = [];
@@ -139,11 +165,11 @@ export default function NeuralBackground() {
             animationFrameId = requestAnimationFrame(animate);
         }
 
-        init();
-        animate();
-
         return () => {
             window.removeEventListener('resize', resize);
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+            }
             cancelAnimationFrame(animationFrameId);
         };
     }, []);

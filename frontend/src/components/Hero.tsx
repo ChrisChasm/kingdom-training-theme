@@ -13,7 +13,7 @@ interface HeroProps {
   ctaLink?: string;
 }
 
-import NeuralBackground from './NeuralBackground';
+import LLMBackground from './LLMBackground';
 
 export default function Hero({
   title,
@@ -24,7 +24,7 @@ export default function Hero({
 }: HeroProps) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-secondary-900 via-secondary-800 to-secondary-700 text-white">
-      <NeuralBackground />
+      <LLMBackground bottomOffset={-25} />
       <div className="container-custom py-20 md:py-32 relative z-10">
         <div className="max-w-4xl">
           {/* Subtitle */}
@@ -73,7 +73,7 @@ export default function Hero({
           <path
             fill="currentColor"
             className="text-white"
-            d="M0 22L120 16.7C240 11 480 1.00001 720 0.700012C960 1.00001 1200 11 1320 16.7L1440 22V54H1320C1200 54 960 54 720 54C480 54 240 54 120 54H0V22Z"
+            d="M0 32L120 37.3C240 43 480 53 720 53.3C960 53 1200 43 1320 37.3L1440 32V54H1320C1200 54 960 54 720 54C480 54 240 54 120 54H0V32Z"
           />
         </svg>
       </div>

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
+import GearsBackground from '@/components/GearsBackground';
 import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
 
 export default function ToolsPage() {
@@ -61,6 +62,7 @@ export default function ToolsPage() {
         title="Tools"
         description="Essential tools and resources for Media to Disciple Making Movements work. Discover Disciple.Tools—our free, open-source disciple relationship management system—and other practical resources designed specifically for M2DMM practitioners."
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
+        backgroundComponent={<GearsBackground />}
       />
 
       <section className="py-16">

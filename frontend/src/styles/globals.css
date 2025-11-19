@@ -113,3 +113,354 @@
   @apply my-8 rounded-lg;
 }
 
+/* LLM Background Animation Styles */
+.llm-background {
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+}
+
+.code-container {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #94a3b8; /* Default slate text */
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* The soft focus and fade effect */
+  mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 20%, 
+    black 80%, 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 20%, 
+    black 80%, 
+    transparent 100%
+  );
+  
+  /* Initial state for animation */
+  animation: breathe 10s infinite ease-in-out;
+}
+
+/* Simulating the soft focus/out of focus effect */
+@keyframes breathe {
+  0% { 
+    filter: blur(1px); 
+    opacity: 0.7;
+  }
+  50% { 
+    filter: blur(2px); 
+    opacity: 0.5;
+  }
+  100% { 
+    filter: blur(1px); 
+    opacity: 0.7;
+  }
+}
+
+.code-line {
+  min-height: 1.6em; /* Prevent jumping */
+  margin-bottom: 2px;
+}
+
+/* Cursor Effect */
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  background-color: #38bdf8; /* Light blue cursor */
+  margin-left: 4px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Syntax Highlighting - Soft/Cool Tone Palette */
+.code-container .keyword { color: #c084fc; }      /* Purple */
+.code-container .function { color: #60a5fa; }     /* Blue */
+.code-container .string { color: #a3e635; }       /* Lime Green */
+.code-container .comment { color: #475569; font-style: italic; } /* Dark Slate */
+.code-container .operator { color: #cbd5e1; }     /* Light Slate */
+.code-container .number { color: #f472b6; }       /* Pink */
+.code-container .class-name { color: #fbbf24; }   /* Amber */
+
+/* Optional: Add a slight scanline effect */
+.llm-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 3px
+  );
+  pointer-events: none;
+}
+
+/* Gears Background Animation Styles */
+.gears-background {
+  background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%, #020617 100%);
+}
+
+.items-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.tool-item {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  opacity: 0;
+  animation: fadeInOut 10s infinite ease-in-out;
+  will-change: transform, opacity;
+}
+
+.tool-item svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Morphing transition state */
+.tool-item.morphing {
+  animation: morph 0.5s ease-in-out;
+}
+
+@keyframes morph {
+  0% {
+    transform: scale(1);
+    filter: blur(0px);
+  }
+  50% {
+    transform: scale(0.5) rotate(180deg);
+    filter: blur(6px);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+/* Gear colors - metallic industrial tones */
+.tool-item.gear.standard svg {
+  fill: #94a3b8; /* Slate Gray */
+  filter: drop-shadow(0 0 12px rgba(148, 163, 184, 0.6));
+}
+
+.tool-item.gear.industrial svg {
+  fill: #fb923c; /* Orange */
+  filter: drop-shadow(0 0 12px rgba(251, 146, 60, 0.6));
+}
+
+.tool-item.gear.small svg {
+  fill: #fbbf24; /* Amber */
+  filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.5));
+}
+
+.tool-item.gear.large svg {
+  fill: #64748b; /* Cool Gray */
+  filter: drop-shadow(0 0 14px rgba(100, 116, 139, 0.6));
+}
+
+.tool-item.gear.sprocket svg {
+  fill: #cbd5e1; /* Light Slate */
+  filter: drop-shadow(0 0 12px rgba(203, 213, 225, 0.6));
+}
+
+/* App Icon colors - vibrant digital tones */
+.tool-item.app-icon.settings svg {
+  fill: #a78bfa; /* Purple */
+  filter: drop-shadow(0 0 15px rgba(167, 139, 250, 0.7));
+}
+
+.tool-item.app-icon.tools svg {
+  fill: #818cf8; /* Indigo */
+  filter: drop-shadow(0 0 15px rgba(129, 140, 248, 0.7));
+}
+
+.tool-item.app-icon.dashboard svg {
+  fill: #60a5fa; /* Blue */
+  filter: drop-shadow(0 0 15px rgba(96, 165, 250, 0.7));
+}
+
+.tool-item.app-icon.widget svg {
+  fill: #c084fc; /* Violet */
+  filter: drop-shadow(0 0 15px rgba(192, 132, 252, 0.7));
+}
+
+.tool-item.app-icon.menu svg {
+  fill: #a855f7; /* Deep Purple */
+  filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.7));
+}
+
+/* Fade in and out animation with enhanced blur effects */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    filter: blur(8px) brightness(0.8);
+  }
+  15% {
+    opacity: 0.3;
+    filter: blur(2px) brightness(1);
+  }
+  35% {
+    opacity: 0.45;
+    filter: blur(0px) brightness(1.1);
+  }
+  50% {
+    opacity: 0.5;
+    filter: blur(0px) brightness(1.15);
+  }
+  65% {
+    opacity: 0.45;
+    filter: blur(0px) brightness(1.1);
+  }
+  85% {
+    opacity: 0.3;
+    filter: blur(2px) brightness(1);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px) brightness(0.8);
+  }
+}
+
+/* Rotation animation with subtle scaling */
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.tool-item.rotating {
+  animation: fadeInOut 10s infinite ease-in-out, rotate 15s infinite linear;
+}
+
+/* Transformation animation - more dynamic */
+@keyframes transform {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: blur(0px) saturate(1);
+  }
+  20% {
+    transform: scale(0.85) rotate(72deg);
+    filter: blur(3px) saturate(1.2);
+  }
+  40% {
+    transform: scale(1.15) rotate(144deg);
+    filter: blur(1px) saturate(1.3);
+  }
+  60% {
+    transform: scale(0.9) rotate(216deg);
+    filter: blur(2px) saturate(1.2);
+  }
+  80% {
+    transform: scale(1.1) rotate(288deg);
+    filter: blur(1px) saturate(1.1);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    filter: blur(0px) saturate(1);
+  }
+}
+
+.tool-item.transforming {
+  animation: fadeInOut 10s infinite ease-in-out, transform 8s infinite ease-in-out;
+}
+
+/* Floating movement - organic drift */
+@keyframes float {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(20px, -25px) rotate(90deg) scale(1.05);
+  }
+  50% {
+    transform: translate(-10px, -45px) rotate(180deg) scale(0.95);
+  }
+  75% {
+    transform: translate(-25px, -20px) rotate(270deg) scale(1.03);
+  }
+  100% {
+    transform: translate(0, 0) rotate(360deg) scale(1);
+  }
+}
+
+.tool-item.floating {
+  animation: fadeInOut 10s infinite ease-in-out, float 18s infinite ease-in-out;
+}
+
+/* Subtle vignette effect */
+.gears-background::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center, 
+    transparent 0%, 
+    transparent 40%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Optional: Add a subtle scanline effect */
+.gears-background::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 3px
+  );
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tool-item {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tool-item {
+    width: 240px;
+    height: 240px;
+  }
+}
+
