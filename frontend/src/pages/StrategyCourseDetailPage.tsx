@@ -224,7 +224,7 @@ export default function StrategyCourseDetailPage() {
         </div>
       )}
 
-      <div className="container-custom py-12 relative overflow-hidden">
+      <div className="container-custom py-12 relative overflow-hidden bg-white">
         {/* Roadmap background graphic with parallax */}
         <div 
           ref={roadmapRef}

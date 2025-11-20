@@ -998,6 +998,35 @@ function gaal_populate_featured_image_column_article($column, $post_id) {
 }
 add_action('manage_article_posts_custom_column', 'gaal_populate_featured_image_column_article', 10, 2);
 
+// Decode HTML entities in article excerpts and content for admin list table
+function gaal_decode_article_excerpt_admin($excerpt, $post) {
+    // Only apply in admin area and for article post type
+    if (is_admin() && isset($post) && $post->post_type === 'article') {
+        // Decode HTML entities
+        $excerpt = html_entity_decode($excerpt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    return $excerpt;
+}
+add_filter('get_the_excerpt', 'gaal_decode_article_excerpt_admin', 10, 2);
+
+// Decode HTML entities when excerpt is displayed in admin
+function gaal_decode_article_excerpt_display($excerpt) {
+    // Only apply in admin area
+    if (!is_admin()) {
+        return $excerpt;
+    }
+    
+    // Check if we're on the article list page
+    global $typenow;
+    if ($typenow === 'article') {
+        // Decode HTML entities
+        $excerpt = html_entity_decode($excerpt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    
+    return $excerpt;
+}
+add_filter('the_excerpt', 'gaal_decode_article_excerpt_display', 20);
+
 // Disable the theme customizer (not needed for headless)
 function gaal_remove_customizer() {
     global $wp_customize;
