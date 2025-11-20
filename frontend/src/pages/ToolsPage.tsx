@@ -4,6 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import GearsBackground from '@/components/GearsBackground';
+import SEO from '@/components/SEO';
 import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
 
 export default function ToolsPage() {
@@ -58,6 +59,12 @@ export default function ToolsPage() {
 
   return (
     <>
+      <SEO
+        title="Tools"
+        description="Essential tools and resources for Media to Disciple Making Movements work. Discover Disciple.Tools—our free, open-source disciple relationship management system—and other practical resources designed specifically for M2DMM practitioners."
+        keywords="M2DMM tools, Disciple.Tools, disciple making tools, church planting tools, digital ministry tools, CRM for discipleship, open source tools, kingdom training tools, ministry resources"
+        url="/tools"
+      />
       <PageHeader
         title="Tools"
         description="Essential tools and resources for Media to Disciple Making Movements work. Discover Disciple.Tools—our free, open-source disciple relationship management system—and other practical resources designed specifically for M2DMM practitioners."

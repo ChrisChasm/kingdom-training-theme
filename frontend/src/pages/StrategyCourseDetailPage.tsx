@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost } from '@/lib/wordpress';
-import { markStepCompleted } from '@/lib/utils';
+import { markStepCompleted, getThemeAssetUrl, stripHtml } from '@/lib/utils';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
+import SEO from '@/components/SEO';
+import StructuredData from '@/components/StructuredData';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function StrategyCourseDetailPage() {
@@ -159,8 +161,59 @@ export default function StrategyCourseDetailPage() {
     );
   }
 
+  const courseTitle = course.steps && course.steps >= 1 && course.steps <= 20
+    ? `${course.steps}. ${course.title.rendered}`
+    : course.title.rendered;
+  const courseDescription = course.excerpt?.rendered 
+    ? stripHtml(course.excerpt.rendered) 
+    : stripHtml(course.content.rendered).substring(0, 160);
+  const courseKeywords = `M2DMM strategy course, ${courseTitle}, MVP course step ${course.steps || ''}, media to movements, disciple making strategy, ${courseTitle.toLowerCase()}`;
+  
+  const siteUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://ai.kingdom.training';
+  const courseUrl = `${siteUrl}/strategy-courses/${course.slug}`;
+  const logoUrl = `${siteUrl}/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp`;
+
   return (
     <article ref={sectionRef}>
+      <SEO
+        title={courseTitle}
+        description={courseDescription}
+        keywords={courseKeywords}
+        image={course.featured_image_url}
+        url={`/strategy-courses/${course.slug}`}
+        type="article"
+        author={course.author_info?.name}
+        publishedTime={course.date}
+        modifiedTime={course.modified}
+      />
+      <StructuredData
+        course={{
+          name: courseTitle,
+          description: courseDescription,
+          provider: {
+            name: 'Kingdom.Training',
+            url: siteUrl,
+          },
+          courseCode: course.steps ? `MVP-STEP-${course.steps}` : undefined,
+          educationalLevel: 'Professional Development',
+          teaches: [
+            'Media to Disciple Making Movements',
+            'Digital Evangelism',
+            'Online Ministry Strategy',
+            'Disciple Making Movements',
+          ],
+          image: course.featured_image_url || logoUrl,
+        }}
+        breadcrumbs={{
+          items: [
+            { name: 'Home', url: siteUrl },
+            { name: 'Strategy Courses', url: `${siteUrl}/strategy-courses` },
+            { name: courseTitle, url: courseUrl },
+          ],
+        }}
+      />
       {course.featured_image_url && (
         <div className="w-full h-96 bg-gray-200">
           <img
@@ -177,7 +230,7 @@ export default function StrategyCourseDetailPage() {
           ref={roadmapRef}
           className="absolute right-0 w-1/2 md:w-2/5 opacity-10 pointer-events-none z-0"
           style={{
-            backgroundImage: 'url(/roadmap.svg)',
+            backgroundImage: `url(${getThemeAssetUrl('roadmap.svg')})`,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'left top',
             backgroundSize: 'contain',

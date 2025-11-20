@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getArticleBySlug, getArticles, WordPressPost } from '@/lib/wordpress';
 import ContentCard from '@/components/ContentCard';
+import SEO from '@/components/SEO';
+import StructuredData from '@/components/StructuredData';
+import { stripHtml } from '@/lib/utils';
 
 export default function ArticleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -68,8 +71,55 @@ export default function ArticleDetailPage() {
     );
   }
 
+  const articleTitle = article.title.rendered;
+  const articleDescription = article.excerpt?.rendered 
+    ? stripHtml(article.excerpt.rendered) 
+    : stripHtml(article.content.rendered).substring(0, 160);
+  const articleKeywords = `M2DMM, ${articleTitle}, disciple making movements, media strategy, ${articleTitle.toLowerCase()}`;
+  
+  const siteUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://ai.kingdom.training';
+  const articleUrl = `${siteUrl}/articles/${article.slug}`;
+  const logoUrl = `${siteUrl}/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp`;
+
   return (
     <article>
+      <SEO
+        title={articleTitle}
+        description={articleDescription}
+        keywords={articleKeywords}
+        image={article.featured_image_url}
+        url={`/articles/${article.slug}`}
+        type="article"
+        author={article.author_info?.name}
+        publishedTime={article.date}
+        modifiedTime={article.modified}
+      />
+      <StructuredData
+        article={{
+          headline: articleTitle,
+          description: articleDescription,
+          image: article.featured_image_url || logoUrl,
+          datePublished: article.date,
+          dateModified: article.modified,
+          author: {
+            name: article.author_info?.name || 'Kingdom.Training',
+          },
+          publisher: {
+            name: 'Kingdom.Training',
+            logo: logoUrl,
+          },
+          mainEntityOfPage: articleUrl,
+        }}
+        breadcrumbs={{
+          items: [
+            { name: 'Home', url: siteUrl },
+            { name: 'Articles', url: `${siteUrl}/articles` },
+            { name: articleTitle, url: articleUrl },
+          ],
+        }}
+      />
       {article.featured_image_url && (
         <div className="w-full h-96 bg-gray-200">
           <img

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { login, logout, getCurrentUser, User } from '@/lib/auth';
 import PageHeader from '@/components/PageHeader';
+import SEO from '@/components/SEO';
 import NeuralBackground from '@/components/NeuralBackground';
 
 export default function LoginPage() {
@@ -59,6 +60,13 @@ export default function LoginPage() {
   if (user) {
     return (
       <>
+        <SEO
+          title="Logged In"
+          description={`Welcome back, ${user.name}!`}
+          url="/login"
+          noindex={true}
+          nofollow={true}
+        />
         <PageHeader
           title="Logged In"
           description={`Welcome back, ${user.name}!`}
@@ -104,6 +112,13 @@ export default function LoginPage() {
 
   return (
     <>
+      <SEO
+        title="Login"
+        description="Login to Kingdom.Training to access your account and WordPress admin dashboard."
+        url="/login"
+        noindex={true}
+        nofollow={true}
+      />
       <PageHeader
         title="Login"
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"

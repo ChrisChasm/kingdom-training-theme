@@ -154,3 +154,27 @@ export function numberToWord(num: number): string {
   return num.toString();
 }
 
+/**
+ * Get theme asset URL
+ * Returns the full path to an asset in the theme's dist directory
+ * Works in both WordPress and development environments
+ */
+export function getThemeAssetUrl(filename: string): string {
+  if (typeof window === 'undefined') {
+    // Server-side or build time - return relative path
+    return `/${filename}`;
+  }
+  
+  // In browser - check if we're on the WordPress domain
+  const hostname = window.location.hostname;
+  const isProduction = hostname === 'ai.kingdom.training' || hostname.includes('kingdom.training');
+  
+  if (isProduction) {
+    // Production WordPress - use full theme path
+    return '/wp-content/themes/kingdom-training-theme/dist/' + filename;
+  }
+  
+  // Development mode - use relative path (Vite will serve from public folder)
+  return `/${filename}`;
+}
+

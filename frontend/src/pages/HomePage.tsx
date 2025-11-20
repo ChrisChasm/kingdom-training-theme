@@ -3,6 +3,9 @@ import Hero from '@/components/Hero';
 import ContentCard from '@/components/ContentCard';
 import NewsletterCTA from '@/components/NewsletterCTA';
 import NeuralBackground from '@/components/NeuralBackground';
+import SEO from '@/components/SEO';
+import StructuredData from '@/components/StructuredData';
+import KeyInfoSection from '@/components/KeyInfoSection';
 import { getArticles, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
 import { Link } from 'react-router-dom';
 
@@ -43,8 +46,24 @@ export default function HomePage() {
     );
   }
 
+  const siteUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://ai.kingdom.training';
+
   return (
     <>
+      <SEO
+        title="Home"
+        description="Training disciple makers to use media to accelerate Disciple Making Movements. Learn practical strategies that bridge online engagement with face-to-face discipleship. Start your M2DMM strategy course today."
+        keywords="disciple making movements, media to movements, M2DMM, digital discipleship, online evangelism, church planting, unreached peoples, kingdom training, strategy course, MVP course"
+      />
+      <StructuredData
+        website={{
+          name: 'Kingdom.Training',
+          url: siteUrl,
+          description: 'Training disciple makers to use media to accelerate Disciple Making Movements. Equipping practitioners with practical strategies that bridge online engagement with face-to-face discipleship.',
+        }}
+      />
       <Hero
         subtitle="Media, Advertising, and AI"
         title="Digital Disciple Making"
@@ -306,6 +325,33 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Key Information Section for Answer Engine Optimization */}
+      <KeyInfoSection
+        title="Key Information About Media to Disciple Making Movements"
+        items={[
+          {
+            term: 'What is Media to Disciple Making Movements (M2DMM)?',
+            definition: 'Media to Disciple Making Movements (M2DMM) is a strategic approach that uses targeted media content to identify spiritual seekers online and connect them with face-to-face disciple-makers. The process involves three stages: (1) Media Content - targeted content reaches entire people groups through platforms like Facebook and Google Ads, (2) Digital Filtering - trained responders dialogue with seekers online, identifying persons of peace ready for face-to-face engagement, (3) Face-to-Face Discipleship - multipliers meet seekers in person, guiding them through discovery, obedience, and sharing in reproducing communities.',
+          },
+          {
+            term: 'What is the MVP Strategy Course?',
+            definition: 'The MVP (Minimum Viable Product) Strategy Course is a 10-step program that guides you through the core elements needed to craft a Media to Disciple Making Movements strategy for any context. The course helps you develop your complete M2DMM strategy and can be completed in 6-7 hours. It covers topics including media content creation, digital filtering strategies, face-to-face discipleship methods, and movement multiplication principles.',
+          },
+          {
+            term: 'What is Disciple.Tools?',
+            definition: 'Disciple.Tools is a free, open-source disciple relationship management system designed specifically for M2DMM practitioners. It helps track and manage disciple-making relationships, monitor progress, and facilitate the growth of Disciple Making Movements.',
+          },
+          {
+            term: 'What is the Heavenly Economy?',
+            definition: 'The Heavenly Economy is a principle that challenges the broken world\'s teaching that "the more you get, the more you should keep." Instead, reflecting God\'s generous nature by offering free training, hands-on coaching, and open-source tools. This approach enables more people to access resources for disciple making, especially in unreached and least-reached areas.',
+          },
+          {
+            term: 'Who is Kingdom.Training for?',
+            definition: 'Kingdom.Training is for disciple makers, church planters, missionaries, and ministry leaders who want to use media strategically to accelerate Disciple Making Movements. We particularly focus on equipping those working with unreached and least-reached peoples - people groups where the name of Jesus has never been proclaimed or where there is no indigenous community of believers with adequate numbers and resources to evangelize their own people.',
+          },
+        ]}
+      />
     </>
   );
 }

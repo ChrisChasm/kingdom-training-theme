@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getToolBySlug, getTools, WordPressPost } from '@/lib/wordpress';
 import ContentCard from '@/components/ContentCard';
+import SEO from '@/components/SEO';
+import StructuredData from '@/components/StructuredData';
+import { stripHtml } from '@/lib/utils';
 
 export default function ToolDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -68,8 +71,55 @@ export default function ToolDetailPage() {
     );
   }
 
+  const toolTitle = tool.title.rendered;
+  const toolDescription = tool.excerpt?.rendered 
+    ? stripHtml(tool.excerpt.rendered) 
+    : stripHtml(tool.content.rendered).substring(0, 160);
+  const toolKeywords = `M2DMM tools, ${toolTitle}, disciple making tools, ministry resources, ${toolTitle.toLowerCase()}`;
+  
+  const siteUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://ai.kingdom.training';
+  const toolUrl = `${siteUrl}/tools/${tool.slug}`;
+  const logoUrl = `${siteUrl}/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp`;
+
   return (
     <article>
+      <SEO
+        title={toolTitle}
+        description={toolDescription}
+        keywords={toolKeywords}
+        image={tool.featured_image_url}
+        url={`/tools/${tool.slug}`}
+        type="article"
+        author={tool.author_info?.name}
+        publishedTime={tool.date}
+        modifiedTime={tool.modified}
+      />
+      <StructuredData
+        article={{
+          headline: toolTitle,
+          description: toolDescription,
+          image: tool.featured_image_url || logoUrl,
+          datePublished: tool.date,
+          dateModified: tool.modified,
+          author: {
+            name: tool.author_info?.name || 'Kingdom.Training',
+          },
+          publisher: {
+            name: 'Kingdom.Training',
+            logo: logoUrl,
+          },
+          mainEntityOfPage: toolUrl,
+        }}
+        breadcrumbs={{
+          items: [
+            { name: 'Home', url: siteUrl },
+            { name: 'Tools', url: `${siteUrl}/tools` },
+            { name: toolTitle, url: toolUrl },
+          ],
+        }}
+      />
       {tool.featured_image_url && (
         <div className="w-full h-96 bg-gray-200">
           <img

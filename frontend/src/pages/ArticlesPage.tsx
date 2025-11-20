@@ -4,6 +4,7 @@ import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import IdeasBackground from '@/components/IdeasBackground';
+import SEO from '@/components/SEO';
 import { getArticles, getArticleCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
 
 export default function ArticlesPage() {
@@ -58,6 +59,12 @@ export default function ArticlesPage() {
 
   return (
     <>
+      <SEO
+        title="Articles"
+        description="Practical guidance, best practices, and real-world insights from the Media to Disciple Making Movements community. Learn from practitioners implementing M2DMM strategies around the world."
+        keywords="M2DMM articles, disciple making movements, media strategy, digital evangelism, church planting articles, online ministry, practical discipleship, field insights, kingdom training articles"
+        url="/articles"
+      />
       <PageHeader
         title="Articles"
         description="Practical guidance, best practices, and real-world insights from the Media to Disciple Making Movements community. Learn from practitioners implementing M2DMM strategies around the world."

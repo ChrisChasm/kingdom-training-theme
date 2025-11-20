@@ -1,8 +1,15 @@
 import PageHeader from '@/components/PageHeader';
+import SEO from '@/components/SEO';
 
 export default function AboutPage() {
   return (
     <>
+      <SEO
+        title="About Us"
+        description="Kingdom.Training focuses on practical training for Media to Disciple Making Movements (M2DMM). We are field workers with a heart for the unreached and least-reached peoples, equipping disciple makers with strategic media tools."
+        keywords="about kingdom training, M2DMM mission, heavenly economy, unreached peoples, disciple making movements, media strategy training, field workers, kingdom training vision"
+        url="/about"
+      />
       <PageHeader 
         title="About Kingdom.Training"
         description="Training disciple makers to use media strategically for Disciple Making Movements"

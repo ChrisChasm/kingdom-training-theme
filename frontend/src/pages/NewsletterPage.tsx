@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
+import SEO from '@/components/SEO';
 import { subscribeToNewsletter } from '@/lib/wordpress';
 import { CheckCircle, AlertCircle, Mail } from 'lucide-react';
 
@@ -32,6 +33,13 @@ export default function NewsletterPage() {
 
   return (
     <>
+      <SEO
+        title="Newsletter"
+        description="Subscribe to Kingdom.Training newsletter and stay connected with the latest training resources, articles, and updates on Media to Disciple Making Movements. Get practical insights delivered to your inbox."
+        keywords="kingdom training newsletter, M2DMM updates, disciple making newsletter, subscribe, training resources, ministry updates"
+        url="/newsletter"
+        noindex={true}
+      />
       <PageHeader 
         title="Newsletter"
         description="Stay connected with the latest training resources, articles, and updates on Media to Disciple Making Movements."

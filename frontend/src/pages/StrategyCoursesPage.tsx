@@ -4,8 +4,10 @@ import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import NeuralBackground from '@/components/NeuralBackground';
+import SEO from '@/components/SEO';
 import { ChevronRight } from 'lucide-react';
 import { getStrategyCourses, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
+import { getThemeAssetUrl } from '@/lib/utils';
 
 export interface CourseStep {
   number: number;
@@ -87,6 +89,12 @@ export default function StrategyCoursesPage() {
 
   return (
     <>
+      <SEO
+        title="Strategy Course - The MVP"
+        description="Comprehensive training to craft your Media to Disciple Making Movements strategy. Follow the 10-step program to develop your complete M2DMM strategy. Complete your plan in 6-7 hours."
+        keywords="M2DMM strategy course, MVP course, media to movements training, disciple making strategy, online evangelism course, church planting strategy, digital discipleship course, kingdom training course"
+        url="/strategy-courses"
+      />
       <PageHeader 
         title="Strategy Course"
         description="Comprehensive training to craft your Media to Disciple Making Movements strategy. Follow the 10-step program below to develop your complete M2DMM strategy."
@@ -101,10 +109,10 @@ export default function StrategyCoursesPage() {
           ref={roadmapRef}
           className="absolute left-1/2 top-0 bottom-0 opacity-10 pointer-events-none z-0"
           style={{
-            backgroundImage: 'url(/roadmap.svg)',
+            backgroundImage: `url(${getThemeAssetUrl('roadmap.svg')})`,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center center',
-            backgroundSize: 'auto 100%',
+            backgroundSize: 'contain',
             width: '80%',
             transform: 'translateX(-50%) scale(1.5)',
             transformOrigin: 'center center'
