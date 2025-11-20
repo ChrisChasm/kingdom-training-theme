@@ -12,10 +12,33 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Strip HTML tags from string
+ * Strip HTML tags from string and decode HTML entities
  */
 export function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
+  // First strip HTML tags
+  const text = html.replace(/<[^>]*>/g, '');
+  
+  // Then decode HTML entities using browser's built-in parser
+  // This handles entities like &#8217; (apostrophe), &#8230; (ellipsis), &amp; (ampersand), etc.
+  if (typeof document !== 'undefined') {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+  
+  // Fallback for server-side rendering (basic entity decoding)
+  // This handles the most common entities
+  return text
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#8230;/g, '...')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 }
 
 /**
