@@ -905,6 +905,68 @@ function gaal_sort_posts_by_steps($query) {
 }
 add_action('pre_get_posts', 'gaal_sort_posts_by_steps');
 
+// Add Featured Image column to Strategy Course admin list table
+function gaal_add_featured_image_column_strategy_course($columns) {
+    // Insert Featured Image column after Title
+    $new_columns = array();
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        if ($key === 'title') {
+            $new_columns['featured_image'] = __('Featured Image', 'kingdom-training');
+        }
+    }
+    // If title column wasn't found, add featured_image at the beginning
+    if (!isset($new_columns['featured_image'])) {
+        $new_columns = array_merge(array('featured_image' => __('Featured Image', 'kingdom-training')), $columns);
+    }
+    return $new_columns;
+}
+add_filter('manage_strategy_course_posts_columns', 'gaal_add_featured_image_column_strategy_course');
+
+// Populate Featured Image column for Strategy Course
+function gaal_populate_featured_image_column_strategy_course($column, $post_id) {
+    if ($column === 'featured_image') {
+        $thumbnail_id = get_post_thumbnail_id($post_id);
+        if ($thumbnail_id) {
+            echo get_the_post_thumbnail($post_id, array(60, 60), array('style' => 'max-width: 60px; height: auto;'));
+        } else {
+            echo '<span style="color: #999;">—</span>';
+        }
+    }
+}
+add_action('manage_strategy_course_posts_custom_column', 'gaal_populate_featured_image_column_strategy_course', 10, 2);
+
+// Add Featured Image column to Tool admin list table
+function gaal_add_featured_image_column_tool($columns) {
+    // Insert Featured Image column after Title
+    $new_columns = array();
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        if ($key === 'title') {
+            $new_columns['featured_image'] = __('Featured Image', 'kingdom-training');
+        }
+    }
+    // If title column wasn't found, add featured_image at the beginning
+    if (!isset($new_columns['featured_image'])) {
+        $new_columns = array_merge(array('featured_image' => __('Featured Image', 'kingdom-training')), $columns);
+    }
+    return $new_columns;
+}
+add_filter('manage_tool_posts_columns', 'gaal_add_featured_image_column_tool');
+
+// Populate Featured Image column for Tool
+function gaal_populate_featured_image_column_tool($column, $post_id) {
+    if ($column === 'featured_image') {
+        $thumbnail_id = get_post_thumbnail_id($post_id);
+        if ($thumbnail_id) {
+            echo get_the_post_thumbnail($post_id, array(60, 60), array('style' => 'max-width: 60px; height: auto;'));
+        } else {
+            echo '<span style="color: #999;">—</span>';
+        }
+    }
+}
+add_action('manage_tool_posts_custom_column', 'gaal_populate_featured_image_column_tool', 10, 2);
+
 // Disable the theme customizer (not needed for headless)
 function gaal_remove_customizer() {
     global $wp_customize;
