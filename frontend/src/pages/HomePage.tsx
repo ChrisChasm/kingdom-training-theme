@@ -66,7 +66,7 @@ export default function HomePage() {
       />
       <Hero
         subtitle="Media, Advertising, and AI"
-        title="Digital Disciple Making"
+        title="Digital → Disciple Making"
         description="Identify spiritual seekers online and connect them with face-to-face disciple-makers who help them discover, obey, and share all that Jesus taught."
         ctaText="Start the MVP Course"
         ctaLink="/strategy-courses"
