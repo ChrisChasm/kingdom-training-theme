@@ -202,7 +202,7 @@ export default function LLMBackground({ bottomOffset = 0 }: LLMBackgroundProps) 
         <div className="llm-background absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div 
                 ref={containerRef}
-                className="code-container absolute right-0 h-full hidden lg:block"
+                className="code-container absolute left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:right-0 h-full"
                 style={containerStyle}
             />
         </div>
