@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost } from '@/lib/wordpress';
-import { markStepCompleted, getThemeAssetUrl, stripHtml } from '@/lib/utils';
+import { markStepCompleted, stripHtml } from '@/lib/utils';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
@@ -15,44 +15,11 @@ export default function StrategyCourseDetailPage() {
   const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const roadmapRef = useRef<HTMLDivElement>(null);
-  const sectionRef = useRef<HTMLElement>(null);
 
   // Scroll to top when navigating to a new course page
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
-
-  // Parallax effect for roadmap
-  useEffect(() => {
-    function handleScroll() {
-      if (!roadmapRef.current || !sectionRef.current) return;
-      
-      const section = sectionRef.current;
-      const scrollY = window.scrollY || window.pageYOffset;
-      
-      // Get section's position relative to document
-      const sectionTop = section.offsetTop;
-      
-      // Calculate scroll progress through the section
-      // When section is at top of viewport, progress is 0
-      // As we scroll down, progress increases
-      const scrollProgress = scrollY - sectionTop + window.innerHeight;
-      
-      // Parallax: background moves slower than scroll (0.15 = 15% speed)
-      // Negative because we want it to move up slower as we scroll down
-      const parallaxOffset = -scrollProgress * 0.15;
-      
-      roadmapRef.current.style.transform = `translateY(${parallaxOffset}px) scale(1.05)`;
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Initial call
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   // Fetch ordered course steps from database
   useEffect(() => {
@@ -176,7 +143,7 @@ export default function StrategyCourseDetailPage() {
   const logoUrl = `${siteUrl}/wp-content/themes/kingdom-training-theme/dist/kt-logo-header.webp`;
 
   return (
-    <article ref={sectionRef}>
+    <article>
       <SEO
         title={courseTitle}
         description={courseDescription}
@@ -224,23 +191,8 @@ export default function StrategyCourseDetailPage() {
         </div>
       )}
 
-      <div className="container-custom py-12 relative overflow-hidden bg-white">
-        {/* Roadmap background graphic with parallax */}
-        <div 
-          ref={roadmapRef}
-          className="absolute right-0 w-1/2 md:w-2/5 opacity-10 pointer-events-none z-0"
-          style={{
-            backgroundImage: `url(${getThemeAssetUrl('roadmap.svg')})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'left top',
-            backgroundSize: 'contain',
-            height: '200%',
-            top: '0',
-            transform: 'scale(1.05)',
-            transformOrigin: 'right top'
-          }}
-        />
-        <div className="max-w-4xl mx-auto relative z-10">
+      <div className="container-custom py-12 bg-white">
+        <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <div className="mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
