@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getToolBySlug, WordPressPost } from '@/lib/wordpress';
-import { formatDate } from '@/lib/utils';
+import { getToolBySlug, getTools, WordPressPost } from '@/lib/wordpress';
+import ContentCard from '@/components/ContentCard';
 
 export default function ToolDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [tool, setTool] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [additionalTools, setAdditionalTools] = useState<WordPressPost[]>([]);
 
   useEffect(() => {
     async function fetchTool() {
@@ -21,6 +22,16 @@ export default function ToolDetailPage() {
         const data = await getToolBySlug(slug);
         if (data) {
           setTool(data);
+          
+          // Fetch additional tools (excluding current one)
+          const tools = await getTools({
+            per_page: 10,
+            orderby: 'date',
+            order: 'desc'
+          });
+          // Filter out current tool
+          const filtered = tools.filter(t => t.id !== data.id).slice(0, 9);
+          setAdditionalTools(filtered);
         } else {
           setError(true);
         }
@@ -69,16 +80,13 @@ export default function ToolDetailPage() {
         </div>
       )}
 
-      <div className="container-custom py-12">
+      <div className="container-custom py-12 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center text-sm text-gray-600 mb-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800 mr-4">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">
                 Tool
               </span>
-              <time dateTime={tool.date}>
-                {formatDate(tool.date)}
-              </time>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -92,6 +100,30 @@ export default function ToolDetailPage() {
           />
         </div>
       </div>
+
+      {/* Additional Resources Section */}
+      {additionalTools.length > 0 && (
+        <section className="py-16 bg-background-50 border-t border-gray-200">
+          <div className="container-custom">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Additional Tool Resources
+                </h2>
+                <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
+                  Discover supplementary tools and resources to enhance your M2DMM strategy development and practice.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {additionalTools.map((tool) => (
+                  <ContentCard key={tool.id} post={tool} type="tools" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }

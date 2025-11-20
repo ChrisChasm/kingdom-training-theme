@@ -1,21 +1,56 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getStrategyCourseBySlug, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
+import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost } from '@/lib/wordpress';
 import { markStepCompleted } from '@/lib/utils';
 import ProgressIndicator from '@/components/ProgressIndicator';
+import ContentCard from '@/components/ContentCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function StrategyCourseDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [course, setCourse] = useState<WordPressPost | null>(null);
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
+  const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const roadmapRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   // Scroll to top when navigating to a new course page
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
+
+  // Parallax effect for roadmap
+  useEffect(() => {
+    function handleScroll() {
+      if (!roadmapRef.current || !sectionRef.current) return;
+      
+      const section = sectionRef.current;
+      const scrollY = window.scrollY || window.pageYOffset;
+      
+      // Get section's position relative to document
+      const sectionTop = section.offsetTop;
+      
+      // Calculate scroll progress through the section
+      // When section is at top of viewport, progress is 0
+      // As we scroll down, progress increases
+      const scrollProgress = scrollY - sectionTop + window.innerHeight;
+      
+      // Parallax: background moves slower than scroll (0.15 = 15% speed)
+      // Negative because we want it to move up slower as we scroll down
+      const parallaxOffset = -scrollProgress * 0.15;
+      
+      roadmapRef.current.style.transform = `translateY(${parallaxOffset}px) scale(1.05)`;
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial call
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Fetch ordered course steps from database
   useEffect(() => {
@@ -23,13 +58,31 @@ export default function StrategyCourseDetailPage() {
       try {
         const steps = await getOrderedCourseSteps();
         setCourseSteps(steps);
+        
+        // Fetch additional resources (courses not in ordered steps, excluding current course)
+        const allCourses = await getStrategyCourses({ 
+          per_page: 100, 
+          orderby: 'date', 
+          order: 'desc' 
+        });
+        
+        // Get slugs of courses with steps to filter them out
+        const stepSlugs = steps.map(step => step.slug);
+        
+        // Filter out courses with steps and current course to get additional resources
+        const additional = allCourses
+          .filter(course => !stepSlugs.includes(course.slug) && course.slug !== slug)
+          .slice(0, 9); // Limit to 9 items for 3 rows
+        
+        setAdditionalResources(additional);
       } catch (err) {
         console.error('Error fetching course steps:', err);
         setCourseSteps([]);
+        setAdditionalResources([]);
       }
     }
     fetchCourseSteps();
-  }, []);
+  }, [slug]);
 
   // Find current step and navigation steps
   const { currentStep, nextStep, previousStep } = useMemo(() => {
@@ -107,7 +160,7 @@ export default function StrategyCourseDetailPage() {
   }
 
   return (
-    <article>
+    <article ref={sectionRef}>
       {course.featured_image_url && (
         <div className="w-full h-96 bg-gray-200">
           <img
@@ -118,8 +171,23 @@ export default function StrategyCourseDetailPage() {
         </div>
       )}
 
-      <div className="container-custom py-12">
-        <div className="max-w-4xl mx-auto">
+      <div className="container-custom py-12 relative overflow-hidden">
+        {/* Roadmap background graphic with parallax */}
+        <div 
+          ref={roadmapRef}
+          className="absolute right-0 w-1/2 md:w-2/5 opacity-10 pointer-events-none z-0"
+          style={{
+            backgroundImage: 'url(/roadmap.svg)',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'left top',
+            backgroundSize: 'contain',
+            height: '200%',
+            top: '0',
+            transform: 'scale(1.05)',
+            transformOrigin: 'right top'
+          }}
+        />
+        <div className="max-w-4xl mx-auto relative z-10">
           <div className="mb-8">
             <div className="mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
@@ -211,6 +279,30 @@ export default function StrategyCourseDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Additional Course Resources Section */}
+      {additionalResources.length > 0 && (
+        <section className="py-16 bg-background-50 border-t border-gray-200">
+          <div className="container-custom">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Additional Course Resources
+                </h2>
+                <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
+                  Discover supplementary materials and resources to deepen your understanding and enhance your M2DMM strategy development.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {additionalResources.map((resource) => (
+                  <ContentCard key={resource.id} post={resource} type="strategy-courses" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }

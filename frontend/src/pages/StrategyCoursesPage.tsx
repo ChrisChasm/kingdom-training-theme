@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
@@ -17,6 +17,8 @@ export default function StrategyCoursesPage() {
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const roadmapRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     async function fetchCourses() {
@@ -51,6 +53,38 @@ export default function StrategyCoursesPage() {
     }
     fetchCourses();
   }, []);
+
+  // Parallax effect for roadmap
+  useEffect(() => {
+    function handleScroll() {
+      if (!roadmapRef.current || !sectionRef.current) return;
+      
+      const section = sectionRef.current;
+      const scrollY = window.scrollY || window.pageYOffset;
+      
+      // Get section's position relative to document
+      const sectionTop = section.offsetTop;
+      
+      // Calculate scroll progress through the section
+      // When section is at top of viewport, progress is 0
+      // As we scroll down, progress increases
+      const scrollProgress = scrollY - sectionTop + window.innerHeight;
+      
+      // Parallax: background moves slower than scroll (0.15 = 15% speed)
+      // Negative because we want it to move up slower as we scroll down
+      const parallaxOffset = -scrollProgress * 0.15;
+      
+      roadmapRef.current.style.transform = `translateX(-50%) translateY(${parallaxOffset}px) scale(1.5)`;
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial call
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   return (
     <>
       <PageHeader 
@@ -61,8 +95,22 @@ export default function StrategyCoursesPage() {
       />
 
       {/* Course Overview */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
+      <section ref={sectionRef} className="py-16 bg-white relative overflow-hidden">
+        {/* Roadmap background graphic with parallax */}
+        <div 
+          ref={roadmapRef}
+          className="absolute left-1/2 top-0 bottom-0 opacity-10 pointer-events-none z-0"
+          style={{
+            backgroundImage: 'url(/roadmap.svg)',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center',
+            backgroundSize: 'auto 100%',
+            width: '80%',
+            transform: 'translateX(-50%) scale(1.5)',
+            transformOrigin: 'center center'
+          }}
+        />
+        <div className="container-custom relative z-10">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">

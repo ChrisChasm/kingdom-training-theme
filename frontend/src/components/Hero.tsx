@@ -52,12 +52,12 @@ export default function Hero({
             >
               {ctaText}
             </Link>
-            <Link
-              to="/articles"
+            <a
+              href="https://ai.kingdom.training/about/"
               className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 text-base font-semibold rounded-lg text-white hover:border-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200"
             >
-              Explore Resources
-            </Link>
+              About Us
+            </a>
           </div>
         </div>
       </div>

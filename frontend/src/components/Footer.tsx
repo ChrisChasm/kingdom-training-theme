@@ -46,9 +46,9 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="text-sm hover:text-white transition-colors">
+                <a href="https://ai.kingdom.training/about/" className="text-sm hover:text-white transition-colors">
                   About
-                </Link>
+                </a>
               </li>
               <li>
                 <Link to="/newsletter" className="text-sm hover:text-white transition-colors">
@@ -81,6 +81,21 @@ export default function Footer() {
             >
               Subscribe to Newsletter
             </Link>
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-4">
+            <a 
+              href="https://ai.kingdom.training/about/" 
+              className="text-sm text-secondary-200 hover:text-white transition-colors"
+            >
+              About
+            </a>
+            <span className="hidden md:inline text-secondary-600">|</span>
+            <a 
+              href="https://ai.kingdom.training/privacy-policy/" 
+              className="text-sm text-secondary-200 hover:text-white transition-colors"
+            >
+              Privacy Policy
+            </a>
           </div>
           <p className="text-sm text-secondary-200 text-center">
             &copy; {currentYear} Kingdom.Training. All rights reserved.

@@ -458,6 +458,213 @@ function gaal_register_auth_api() {
 }
 add_action('rest_api_init', 'gaal_register_auth_api');
 
+// Brevo API Integration Functions
+/**
+ * Get Brevo API key from WordPress options
+ */
+function gaal_get_brevo_api_key() {
+    return get_option('gaal_brevo_api_key', '');
+}
+
+/**
+ * Get Brevo list ID from WordPress options
+ */
+function gaal_get_brevo_list_id() {
+    $list_id = get_option('gaal_brevo_list_id', '');
+    // Convert to integer if it's a valid number
+    return is_numeric($list_id) ? intval($list_id) : $list_id;
+}
+
+/**
+ * Submit contact to Brevo API
+ * 
+ * @param string $email Contact email address
+ * @param string $name Contact name (optional)
+ * @return array|WP_Error Response from Brevo API or WP_Error on failure
+ */
+function gaal_subscribe_to_brevo($email, $name = '') {
+    $api_key = gaal_get_brevo_api_key();
+    $list_id = gaal_get_brevo_list_id();
+    
+    // Check if Brevo is configured
+    if (empty($api_key)) {
+        return new WP_Error('brevo_not_configured', 'Brevo API key is not configured', array('status' => 500));
+    }
+    
+    // Prepare name attributes
+    $attributes = array();
+    if (!empty($name)) {
+        // Split name into first and last name if space exists
+        $name_parts = explode(' ', trim($name), 2);
+        $attributes['FIRSTNAME'] = $name_parts[0];
+        if (isset($name_parts[1])) {
+            $attributes['LASTNAME'] = $name_parts[1];
+        }
+    }
+    
+    // Prepare request body
+    $body = array(
+        'email' => $email,
+        'updateEnabled' => true, // Update contact if already exists
+    );
+    
+    if (!empty($attributes)) {
+        $body['attributes'] = $attributes;
+    }
+    
+    // Add list ID if configured
+    if (!empty($list_id)) {
+        $body['listIds'] = array($list_id);
+    }
+    
+    // Make API request to Brevo
+    $url = 'https://api.brevo.com/v3/contacts';
+    $args = array(
+        'method' => 'POST',
+        'headers' => array(
+            'Content-Type' => 'application/json',
+            'api-key' => $api_key,
+        ),
+        'body' => json_encode($body),
+        'timeout' => 15,
+    );
+    
+    $response = wp_remote_request($url, $args);
+    
+    // Handle errors
+    if (is_wp_error($response)) {
+        error_log('Brevo API Error: ' . $response->get_error_message());
+        return new WP_Error('brevo_api_error', 'Failed to connect to Brevo API: ' . $response->get_error_message(), array('status' => 500));
+    }
+    
+    $response_code = wp_remote_retrieve_response_code($response);
+    $response_body = wp_remote_retrieve_body($response);
+    $response_data = json_decode($response_body, true);
+    
+    // Handle successful responses
+    if ($response_code === 201 || $response_code === 200 || $response_code === 204) {
+        // Success - contact created or updated
+        return array(
+            'success' => true,
+            'code' => $response_code,
+            'data' => $response_data,
+        );
+    }
+    
+    // Handle error responses
+    $error_message = 'Unknown error';
+    if (isset($response_data['message'])) {
+        $error_message = $response_data['message'];
+    } elseif (isset($response_data['error'])) {
+        $error_message = is_array($response_data['error']) ? json_encode($response_data['error']) : $response_data['error'];
+    }
+    
+    error_log('Brevo API Error Response: ' . $error_message . ' (Code: ' . $response_code . ')');
+    
+    // Handle specific error cases
+    if ($response_code === 400) {
+        return new WP_Error('brevo_invalid_request', 'Invalid request to Brevo: ' . $error_message, array('status' => 400));
+    } elseif ($response_code === 401) {
+        return new WP_Error('brevo_unauthorized', 'Brevo API key is invalid', array('status' => 401));
+    } elseif ($response_code === 404) {
+        return new WP_Error('brevo_not_found', 'Brevo resource not found: ' . $error_message, array('status' => 404));
+    } else {
+        return new WP_Error('brevo_api_error', 'Brevo API error: ' . $error_message, array('status' => $response_code));
+    }
+}
+
+// Register Brevo Settings in WordPress Admin
+function gaal_add_brevo_settings() {
+    add_options_page(
+        __('Brevo Newsletter Settings', 'kingdom-training'),
+        __('Brevo Newsletter', 'kingdom-training'),
+        'manage_options',
+        'gaal-brevo-settings',
+        'gaal_brevo_settings_page'
+    );
+}
+add_action('admin_menu', 'gaal_add_brevo_settings');
+
+/**
+ * Render Brevo settings page
+ */
+function gaal_brevo_settings_page() {
+    // Save settings if form was submitted
+    if (isset($_POST['gaal_brevo_settings_submit']) && check_admin_referer('gaal_brevo_settings')) {
+        $api_key = sanitize_text_field($_POST['gaal_brevo_api_key'] ?? '');
+        $list_id = sanitize_text_field($_POST['gaal_brevo_list_id'] ?? '');
+        
+        update_option('gaal_brevo_api_key', $api_key);
+        update_option('gaal_brevo_list_id', $list_id);
+        
+        echo '<div class="notice notice-success"><p>' . __('Settings saved successfully!', 'kingdom-training') . '</p></div>';
+    }
+    
+    $api_key = gaal_get_brevo_api_key();
+    $list_id = gaal_get_brevo_list_id();
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html__('Brevo Newsletter Settings', 'kingdom-training'); ?></h1>
+        <form method="post" action="">
+            <?php wp_nonce_field('gaal_brevo_settings'); ?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="gaal_brevo_api_key"><?php echo esc_html__('Brevo API Key', 'kingdom-training'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" 
+                               id="gaal_brevo_api_key" 
+                               name="gaal_brevo_api_key" 
+                               value="<?php echo esc_attr($api_key); ?>" 
+                               class="regular-text"
+                               placeholder="xkeysib-...">
+                        <p class="description">
+                            <?php echo esc_html__('Enter your Brevo API key. You can find this in your Brevo account under SMTP & API > API keys.', 'kingdom-training'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="gaal_brevo_list_id"><?php echo esc_html__('Brevo List ID', 'kingdom-training'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" 
+                               id="gaal_brevo_list_id" 
+                               name="gaal_brevo_list_id" 
+                               value="<?php echo esc_attr($list_id); ?>" 
+                               class="regular-text"
+                               placeholder="1">
+                        <p class="description">
+                            <?php echo esc_html__('Enter the ID of the Brevo list where contacts should be added. Leave empty if you want to add contacts without assigning them to a list.', 'kingdom-training'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(__('Save Settings', 'kingdom-training'), 'primary', 'gaal_brevo_settings_submit'); ?>
+        </form>
+        <div class="card" style="max-width: 800px; margin-top: 20px;">
+            <h2><?php echo esc_html__('How to Get Your Brevo API Key', 'kingdom-training'); ?></h2>
+            <ol>
+                <li><?php echo esc_html__('Log into your Brevo account', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Navigate to Settings > SMTP & API', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Click on the "API keys" tab', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Click "Generate a new API key"', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Name your API key and click "Generate"', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Copy the generated API key and paste it above', 'kingdom-training'); ?></li>
+            </ol>
+            <h2><?php echo esc_html__('How to Find Your List ID', 'kingdom-training'); ?></h2>
+            <ol>
+                <li><?php echo esc_html__('Log into your Brevo account', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Navigate to Contacts > Lists', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('Click on the list you want to use', 'kingdom-training'); ?></li>
+                <li><?php echo esc_html__('The List ID is shown in the URL or list details', 'kingdom-training'); ?></li>
+            </ol>
+        </div>
+    </div>
+    <?php
+}
+
 // Register Newsletter Subscription API endpoint
 function gaal_register_newsletter_api() {
     // Newsletter subscription endpoint
@@ -472,49 +679,77 @@ function gaal_register_newsletter_api() {
                 return new WP_Error('invalid_email', 'Please provide a valid email address', array('status' => 400));
             }
             
-            // Check if email already exists
-            $existing_subscribers = get_option('gaal_newsletter_subscribers', array());
-            foreach ($existing_subscribers as $subscriber) {
+            // Submit to Brevo API
+            $brevo_result = gaal_subscribe_to_brevo($email, $name);
+            
+            // If Brevo is configured and there's an error, log it but continue with local storage
+            $brevo_success = false;
+            if (!is_wp_error($brevo_result)) {
+                $brevo_success = true;
+            } else {
+                // Log Brevo errors but don't fail the subscription
+                // This allows the subscription to work even if Brevo is temporarily unavailable
+                error_log('Brevo subscription failed for ' . $email . ': ' . $brevo_result->get_error_message());
+            }
+            
+            // Store subscriber data locally as backup
+            $subscribers = get_option('gaal_newsletter_subscribers', array());
+            
+            // Check if email already exists locally
+            $email_exists = false;
+            foreach ($subscribers as $index => $subscriber) {
                 if (isset($subscriber['email']) && strtolower($subscriber['email']) === strtolower($email)) {
-                    return new WP_Error('already_subscribed', 'This email is already subscribed to our newsletter', array('status' => 409));
+                    // Update existing subscriber
+                    $subscribers[$index] = array(
+                        'email' => $email,
+                        'name' => $name,
+                        'subscribed_at' => $subscriber['subscribed_at'] ?? current_time('mysql'),
+                        'updated_at' => current_time('mysql'),
+                        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+                        'brevo_synced' => $brevo_success,
+                    );
+                    $email_exists = true;
+                    break;
                 }
             }
             
-            // Add to subscribers list
-            $subscribers = get_option('gaal_newsletter_subscribers', array());
-            $subscriber_data = array(
-                'email' => $email,
-                'name' => $name,
-                'subscribed_at' => current_time('mysql'),
-                'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
-            );
+            // Add new subscriber if not exists
+            if (!$email_exists) {
+                $subscriber_data = array(
+                    'email' => $email,
+                    'name' => $name,
+                    'subscribed_at' => current_time('mysql'),
+                    'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+                    'brevo_synced' => $brevo_success,
+                );
+                $subscribers[] = $subscriber_data;
+            }
             
-            // Store subscriber data
-            $subscribers[] = $subscriber_data;
+            // Save subscribers list
             update_option('gaal_newsletter_subscribers', $subscribers);
             
-            // Optional: Send notification email to admin
-            $admin_email = get_option('admin_email');
-            $subject = sprintf(__('New Newsletter Subscription: %s', 'kingdom-training'), $email);
-            $message = sprintf(
-                __("A new subscriber has joined the newsletter:\n\nEmail: %s\nName: %s\nDate: %s", 'kingdom-training'),
-                $email,
-                $name ?: __('Not provided', 'kingdom-training'),
-                current_time('mysql')
-            );
-            wp_mail($admin_email, $subject, $message);
+            // If Brevo sync failed but we have a configured API key, return error
+            // This ensures users know if there's a configuration issue
+            if (is_wp_error($brevo_result) && !empty(gaal_get_brevo_api_key())) {
+                // Check if it's a configuration error (401) or a temporary issue
+                $error_code = $brevo_result->get_error_code();
+                if (in_array($error_code, array('brevo_unauthorized', 'brevo_not_configured'))) {
+                    // Configuration error - return error to user
+                    return new WP_Error(
+                        'brevo_config_error',
+                        'Newsletter subscription service is not properly configured. Please contact the administrator.',
+                        array('status' => 500)
+                    );
+                }
+                // For other errors (network, etc.), still succeed but log
+            }
             
-            // Optional: Send welcome email to subscriber
-            $welcome_subject = __('Welcome to Kingdom Training Newsletter', 'kingdom-training');
-            $welcome_message = sprintf(
-                __("Thank you for subscribing to the Kingdom Training newsletter!\n\nWe're excited to share training resources, articles, and insights on Media to Disciple Making Movements with you.\n\nYou'll receive regular updates delivered directly to your inbox.\n\nBlessings,\nThe Kingdom Training Team", 'kingdom-training')
-            );
-            wp_mail($email, $welcome_subject, $welcome_message);
-            
+            // Return success response
             return array(
                 'success' => true,
                 'message' => 'Successfully subscribed to newsletter',
                 'email' => $email,
+                'brevo_synced' => $brevo_success,
             );
         },
         'permission_callback' => '__return_true',

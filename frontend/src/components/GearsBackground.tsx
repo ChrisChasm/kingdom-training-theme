@@ -234,6 +234,7 @@ export default function GearsBackground() {
 
         const itemCount = 18;
         const items: ToolItem[] = [];
+        const preloadCount = 6; // Number of items to preload immediately
 
         // Initialize items
         for (let i = 0; i < itemCount; i++) {
@@ -244,7 +245,10 @@ export default function GearsBackground() {
             const y = Math.random() * (window.innerHeight - 400);
             const vx = (Math.random() - 0.5) * 1.2;
             const vy = (Math.random() - 0.5) * 1.2;
-            const delay = Math.random() * 5;
+            
+            // Preload first few items with no delay, others get random delay
+            const delay = i < preloadCount ? 0 : Math.random() * 5;
+            
             const isAppIcon = Math.random() > 0.5;
             const transformationTimer = 0;
             const transformationDuration = 5000 + Math.random() * 5000;
@@ -272,7 +276,16 @@ export default function GearsBackground() {
 
             updateVisual(item);
             updatePosition(item);
-            element.style.animationDelay = `${delay}s`;
+            
+            // For preloaded items, start animation mid-cycle so they're immediately visible
+            if (i < preloadCount) {
+                // Start animation at a random point in the cycle (between 15% and 65% for visibility)
+                const startProgress = 15 + Math.random() * 50; // 15% to 65%
+                // Negative delay starts the animation at a specific point in the cycle
+                element.style.animationDelay = `-${(startProgress / 100) * 10}s`;
+            } else {
+                element.style.animationDelay = `${delay}s`;
+            }
 
             container.appendChild(element);
             items.push(item);

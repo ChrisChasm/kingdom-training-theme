@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArticleBySlug, WordPressPost } from '@/lib/wordpress';
-import { formatDate } from '@/lib/utils';
+import { getArticleBySlug, getArticles, WordPressPost } from '@/lib/wordpress';
+import ContentCard from '@/components/ContentCard';
 
 export default function ArticleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [relatedArticles, setRelatedArticles] = useState<WordPressPost[]>([]);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -21,6 +22,16 @@ export default function ArticleDetailPage() {
         const data = await getArticleBySlug(slug);
         if (data) {
           setArticle(data);
+          
+          // Fetch additional articles (excluding current one)
+          const articles = await getArticles({
+            per_page: 10,
+            orderby: 'date',
+            order: 'desc'
+          });
+          // Filter out current article
+          const filtered = articles.filter(a => a.id !== data.id).slice(0, 9);
+          setRelatedArticles(filtered);
         } else {
           setError(true);
         }
@@ -69,38 +80,18 @@ export default function ArticleDetailPage() {
         </div>
       )}
 
-      <div className="container-custom py-12">
+      <div className="container-custom py-12 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center text-sm text-gray-600 mb-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent-100 text-accent-800 mr-4">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent-100 text-accent-800">
                 Article
               </span>
-              <time dateTime={article.date}>
-                {formatDate(article.date)}
-              </time>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               {article.title.rendered}
             </h1>
-
-            {article.author_info && (
-              <div className="flex items-center space-x-3">
-                {article.author_info.avatar && (
-                  <img
-                    src={article.author_info.avatar}
-                    alt={article.author_info.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                )}
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {article.author_info.name}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           <div 
@@ -109,6 +100,30 @@ export default function ArticleDetailPage() {
           />
         </div>
       </div>
+
+      {/* Additional Resources Section */}
+      {relatedArticles.length > 0 && (
+        <section className="py-16 bg-background-50 border-t border-gray-200">
+          <div className="container-custom">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Additional Article Resources
+                </h2>
+                <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
+                  Discover more articles and resources to deepen your understanding and enhance your M2DMM practice.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {relatedArticles.map((relatedArticle) => (
+                  <ContentCard key={relatedArticle.id} post={relatedArticle} type="articles" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }

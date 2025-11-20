@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
-import LLMBackground from '@/components/LLMBackground';
+import IdeasBackground from '@/components/IdeasBackground';
 import { getArticles, getArticleCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
 
 export default function ArticlesPage() {
@@ -62,7 +62,7 @@ export default function ArticlesPage() {
         title="Articles"
         description="Practical guidance, best practices, and real-world insights from the Media to Disciple Making Movements community. Learn from practitioners implementing M2DMM strategies around the world."
         backgroundClass="bg-gradient-to-r from-secondary-900 to-secondary-700"
-        backgroundComponent={<LLMBackground />}
+        backgroundComponent={<IdeasBackground />}
       />
 
       <section className="py-16">
