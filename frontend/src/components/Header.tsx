@@ -3,11 +3,14 @@
  * Main navigation header with logo and menu
  */
 
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogIn, Mail } from 'lucide-react';
+import { LogIn, Mail, Search } from 'lucide-react';
+import SearchModal from './SearchModal';
 
 export default function Header() {
   const location = useLocation();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -68,6 +71,13 @@ export default function Header() {
               <Mail className="w-4 h-4" />
               <span>Newsletter</span>
             </Link>
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="text-gray-700 hover:text-primary-500 transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             <Link
               to="/login"
               className="text-gray-700 hover:text-primary-500 transition-colors"
@@ -78,6 +88,7 @@ export default function Header() {
           </div>
         </div>
       </nav>
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }

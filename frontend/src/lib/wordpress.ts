@@ -217,6 +217,7 @@ export async function getStrategyCourses(params: {
   orderby?: string;
   order?: 'asc' | 'desc';
   strategy_course_categories?: string;
+  search?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -299,6 +300,7 @@ export async function getTools(params: {
   order?: 'asc' | 'desc';
   tool_categories?: string;
   tags?: string;
+  search?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -488,6 +490,73 @@ export async function getTags(params: {
   );
 
   return fetchAPI(`/wp/v2/tags?${queryParams.toString()}`);
+}
+
+/**
+ * Search strategy courses and tools
+ * Returns combined results with type metadata, sorted to prioritize title matches
+ */
+export interface SearchResult extends WordPressPost {
+  resultType: 'strategy-course' | 'tool';
+}
+
+export async function searchStrategyCoursesAndTools(query: string): Promise<SearchResult[]> {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
+  try {
+    // Fetch both endpoints in parallel
+    const [courses, tools] = await Promise.all([
+      getStrategyCourses({
+        per_page: 50,
+        orderby: 'relevance',
+        search: query.trim()
+      }).catch(() => [] as WordPressPost[]),
+      getTools({
+        per_page: 50,
+        orderby: 'relevance',
+        search: query.trim()
+      }).catch(() => [] as WordPressPost[])
+    ]);
+
+    // Combine results with type metadata
+    const allResults: SearchResult[] = [
+      ...courses.map(course => ({ ...course, resultType: 'strategy-course' as const })),
+      ...tools.map(tool => ({ ...tool, resultType: 'tool' as const }))
+    ];
+
+    // Sort to prioritize title matches over content matches
+    const queryLower = query.toLowerCase().trim();
+    
+    return allResults.sort((a, b) => {
+      const aTitle = a.title.rendered.toLowerCase();
+      const bTitle = b.title.rendered.toLowerCase();
+      
+      // Check if title contains the query
+      const aTitleMatch = aTitle.includes(queryLower);
+      const bTitleMatch = bTitle.includes(queryLower);
+      
+      // Check if title starts with the query (higher priority)
+      const aTitleStarts = aTitle.startsWith(queryLower);
+      const bTitleStarts = bTitle.startsWith(queryLower);
+      
+      // Priority 1: Title starts with query
+      if (aTitleStarts && !bTitleStarts) return -1;
+      if (!aTitleStarts && bTitleStarts) return 1;
+      
+      // Priority 2: Title contains query
+      if (aTitleMatch && !bTitleMatch) return -1;
+      if (!aTitleMatch && bTitleMatch) return 1;
+      
+      // Priority 3: Both match title or both don't - maintain WordPress relevance order
+      // (WordPress orders by relevance when using search parameter)
+      return 0;
+    });
+  } catch (error) {
+    console.error('Error searching strategy courses and tools:', error);
+    return [];
+  }
 }
 
 /**
