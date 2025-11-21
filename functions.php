@@ -137,7 +137,7 @@ function gaal_register_custom_post_types() {
     // Strategy Course Post Type
     register_post_type('strategy_course', array(
         'labels' => array(
-            'name' => __('Strategy Courses', 'kingdom-training'),
+            'name' => __('Strategy Course', 'kingdom-training'),
             'singular_name' => __('Strategy Course', 'kingdom-training'),
             'add_new' => __('Add New Strategy Course', 'kingdom-training'),
             'add_new_item' => __('Add New Strategy Course', 'kingdom-training'),
@@ -154,7 +154,6 @@ function gaal_register_custom_post_types() {
         'menu_icon' => 'dashicons-book-alt',
         'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'custom-fields', 'revisions'),
         'rewrite' => array('slug' => 'strategy-courses'),
-        'taxonomies' => array('strategy_course_category', 'post_tag'),
     ));
 
     // Articles Post Type (enhanced from default posts)
