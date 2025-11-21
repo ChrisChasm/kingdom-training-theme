@@ -17,7 +17,8 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  capabilities?: string[];
+  capabilities?: string[] | Record<string, boolean | string>;
+  roles?: string[];
 }
 
 /**
@@ -64,15 +65,35 @@ export async function logout(): Promise<void> {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const response = await fetch(`${API_URL}/gaal/v1/auth/me`, {
-      credentials: 'include',
+      method: 'GET',
+      credentials: 'include', // Include cookies for WordPress authentication
+      headers: {
+        'Cache-Control': 'no-cache',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
     });
 
-    if (!response.ok) {
+    // Handle 200 OK responses (even if null)
+    if (response.status === 200) {
+      const data = await response.json();
+      
+      // If the API returns null (no user), return null
+      if (!data || data === null || (typeof data === 'object' && Object.keys(data).length === 0)) {
+        return null;
+      }
+
+      return data;
+    }
+
+    // For any other status, user is not authenticated
+    if (response.status === 401 || response.status === 403) {
       return null;
     }
 
-    return await response.json();
+    // For other errors, still return null
+    return null;
   } catch (error) {
+    console.error('Error fetching current user:', error);
     return null;
   }
 }

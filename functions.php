@@ -27,6 +27,15 @@ function gaal_enable_cors() {
         
         return $value;
     });
+    
+    // Ensure cookies are sent with REST API requests
+    add_filter('rest_authentication_errors', function($result) {
+        // Allow our custom auth endpoint to work without requiring authentication
+        if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/gaal/v1/auth/me') !== false) {
+            return true; // Allow the request
+        }
+        return $result;
+    }, 20);
 }
 add_action('rest_api_init', 'gaal_enable_cors');
 
@@ -407,12 +416,16 @@ function gaal_register_auth_api() {
             wp_set_auth_cookie($user->ID, true);
             
             // Return user data
+            // Get user roles
+            $roles = $user->roles;
+            
             return array(
                 'id' => $user->ID,
                 'name' => $user->display_name,
                 'email' => $user->user_email,
                 'avatar' => get_avatar_url($user->ID),
                 'capabilities' => $user->allcaps,
+                'roles' => $roles,
             );
         },
         'permission_callback' => '__return_true',
@@ -432,25 +445,33 @@ function gaal_register_auth_api() {
     register_rest_route('gaal/v1', '/auth/me', array(
         'methods' => 'GET',
         'callback' => function($request) {
+            // WordPress should already have loaded the user session
+            // Just get the current user ID - WordPress handles cookie authentication automatically
             $user_id = get_current_user_id();
             
-            if (!$user_id) {
-                return new WP_Error('not_authenticated', 'User is not logged in', array('status' => 401));
+            // If no user ID, return null (not an error) so frontend can handle gracefully
+            if (!$user_id || $user_id === 0) {
+                // Return 200 OK with null to avoid 401 errors
+                return new WP_REST_Response(null, 200);
             }
             
             $user = get_userdata($user_id);
             
             if (!$user) {
-                return new WP_Error('user_not_found', 'User not found', array('status' => 404));
+                return new WP_REST_Response(null, 200);
             }
             
-            return array(
+            // Get user roles
+            $roles = $user->roles;
+            
+            return new WP_REST_Response(array(
                 'id' => $user->ID,
                 'name' => $user->display_name,
                 'email' => $user->user_email,
                 'avatar' => get_avatar_url($user->ID),
                 'capabilities' => $user->allcaps,
-            );
+                'roles' => $roles,
+            ), 200);
         },
         'permission_callback' => '__return_true',
     ));

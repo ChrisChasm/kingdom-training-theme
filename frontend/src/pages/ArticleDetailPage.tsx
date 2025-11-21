@@ -4,6 +4,8 @@ import { getArticleBySlug, getArticles, WordPressPost } from '@/lib/wordpress';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
+import AdminEditLink from '@/components/AdminEditLink';
+import FeaturedImage from '@/components/FeaturedImage';
 import { stripHtml } from '@/lib/utils';
 
 export default function ArticleDetailPage() {
@@ -121,17 +123,15 @@ export default function ArticleDetailPage() {
         }}
       />
       {article.featured_image_url && (
-        <div className="w-full h-48 md:h-96 bg-gray-200">
-          <img
-            src={article.featured_image_url}
-            alt={article.title.rendered}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <FeaturedImage
+          src={article.featured_image_url}
+          alt={article.title.rendered}
+        />
       )}
 
       <div className="container-custom py-12 bg-white">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+          <AdminEditLink postId={article.id} />
           <div className="mb-8">
             <div className="flex items-center text-sm text-gray-600 mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent-100 text-accent-800">

@@ -6,6 +6,8 @@ import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
+import AdminEditLink from '@/components/AdminEditLink';
+import FeaturedImage from '@/components/FeaturedImage';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function StrategyCourseDetailPage() {
@@ -182,17 +184,15 @@ export default function StrategyCourseDetailPage() {
         }}
       />
       {course.featured_image_url && (
-        <div className="w-full h-48 md:h-96 bg-gray-200">
-          <img
-            src={course.featured_image_url}
-            alt={course.title.rendered}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <FeaturedImage
+          src={course.featured_image_url}
+          alt={course.title.rendered}
+        />
       )}
 
       <div className="container-custom py-12 bg-white">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+          <AdminEditLink postId={course.id} />
           <div className="mb-8">
             <div className="mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">

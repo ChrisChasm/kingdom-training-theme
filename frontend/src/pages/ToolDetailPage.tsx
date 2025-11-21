@@ -4,6 +4,8 @@ import { getToolBySlug, getTools, WordPressPost } from '@/lib/wordpress';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
+import AdminEditLink from '@/components/AdminEditLink';
+import FeaturedImage from '@/components/FeaturedImage';
 import { stripHtml } from '@/lib/utils';
 
 export default function ToolDetailPage() {
@@ -121,17 +123,15 @@ export default function ToolDetailPage() {
         }}
       />
       {tool.featured_image_url && (
-        <div className="w-full h-48 md:h-96 bg-gray-200">
-          <img
-            src={tool.featured_image_url}
-            alt={tool.title.rendered}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <FeaturedImage
+          src={tool.featured_image_url}
+          alt={tool.title.rendered}
+        />
       )}
 
       <div className="container-custom py-12 bg-white">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+          <AdminEditLink postId={tool.id} />
           <div className="mb-8">
             <div className="flex items-center text-sm text-gray-600 mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">
