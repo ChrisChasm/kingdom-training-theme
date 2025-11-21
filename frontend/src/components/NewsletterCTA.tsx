@@ -9,6 +9,8 @@ interface NewsletterCTAProps {
   description?: string;
   showEmailInput?: boolean;
   className?: string;
+  whiteBackground?: boolean;
+  noWrapper?: boolean;
 }
 
 export default function NewsletterCTA({
@@ -16,7 +18,9 @@ export default function NewsletterCTA({
   title,
   description,
   showEmailInput = false,
-  className = ''
+  className = '',
+  whiteBackground = false,
+  noWrapper = false
 }: NewsletterCTAProps) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -49,13 +53,22 @@ export default function NewsletterCTA({
   const defaultDescription = description || 'Get the latest training resources and insights delivered to your inbox.';
 
   if (variant === 'banner') {
-    return (
-      <section className={`bg-gradient-to-r from-primary-800 to-primary-600 text-white py-12 ${className}`}>
+    const bgClasses = whiteBackground 
+      ? 'bg-white text-gray-900' 
+      : 'bg-gradient-to-r from-primary-800 to-primary-600 text-white';
+    const titleClasses = whiteBackground ? 'text-gray-900' : '';
+    const descriptionClasses = whiteBackground ? 'text-gray-700' : 'text-primary-100';
+    const iconClasses = whiteBackground ? 'text-primary-600' : 'text-accent-500';
+    const successMessageClasses = whiteBackground ? 'text-green-600' : 'text-green-200';
+    const errorMessageClasses = whiteBackground ? 'text-red-600' : 'text-red-200';
+    
+    const content = (
+      <div className={`${noWrapper ? '' : bgClasses} ${noWrapper ? '' : 'py-12'} ${className}`}>
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
-            <Mail className="w-12 h-12 mx-auto mb-4 text-accent-500" />
-            <h2 className="text-3xl font-bold mb-4">{defaultTitle}</h2>
-            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">{defaultDescription}</p>
+            <Mail className={`w-12 h-12 mx-auto mb-4 ${iconClasses}`} />
+            <h2 className={`text-3xl font-bold mb-4 ${titleClasses}`}>{defaultTitle}</h2>
+            <p className={`text-xl mb-8 max-w-2xl mx-auto ${descriptionClasses}`}>{defaultDescription}</p>
             
             {showEmailInput ? (
               <form onSubmit={handleSubmit} className="max-w-md mx-auto">
@@ -66,25 +79,29 @@ export default function NewsletterCTA({
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="Enter your email"
-                    className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:ring-2 focus:ring-accent-500 focus:outline-none"
+                    className={`flex-1 px-4 py-3 rounded-lg ${whiteBackground ? 'border border-gray-300 text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500' : 'text-gray-900 focus:ring-2 focus:ring-accent-500 focus:outline-none'}`}
                     disabled={status === 'loading' || status === 'success'}
                   />
                   <button
                     type="submit"
                     disabled={status === 'loading' || status === 'success'}
-                    className="px-8 py-3 bg-accent-600 hover:bg-accent-500 text-secondary-900 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-8 py-3 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      whiteBackground 
+                        ? 'bg-primary-600 hover:bg-primary-700 text-white' 
+                        : 'bg-accent-600 hover:bg-accent-500 text-secondary-900'
+                    }`}
                   >
                     {status === 'loading' ? 'Subscribing...' : status === 'success' ? 'Subscribed!' : 'Subscribe'}
                   </button>
                 </div>
                 {status === 'success' && message && (
-                  <p className="mt-4 text-green-200 flex items-center justify-center gap-2">
+                  <p className={`mt-4 ${successMessageClasses} flex items-center justify-center gap-2`}>
                     <CheckCircle className="w-5 h-5" />
                     {message}
                   </p>
                 )}
                 {status === 'error' && message && (
-                  <p className="mt-4 text-red-200 flex items-center justify-center gap-2">
+                  <p className={`mt-4 ${errorMessageClasses} flex items-center justify-center gap-2`}>
                     <AlertCircle className="w-5 h-5" />
                     {message}
                   </p>
@@ -93,7 +110,11 @@ export default function NewsletterCTA({
             ) : (
               <Link
                 to="/newsletter"
-                className="inline-flex items-center justify-center px-8 py-4 bg-accent-600 hover:bg-accent-500 text-secondary-900 font-semibold rounded-lg transition-colors duration-200 text-lg"
+                className={`inline-flex items-center justify-center px-8 py-4 font-semibold rounded-lg transition-colors duration-200 text-lg ${
+                  whiteBackground 
+                    ? 'bg-primary-600 hover:bg-primary-700 text-white' 
+                    : 'bg-accent-600 hover:bg-accent-500 text-secondary-900'
+                }`}
               >
                 Subscribe to Newsletter
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -101,8 +122,14 @@ export default function NewsletterCTA({
             )}
           </div>
         </div>
-      </section>
+      </div>
     );
+
+    if (noWrapper) {
+      return content;
+    }
+
+    return <section>{content}</section>;
   }
 
   if (variant === 'card') {

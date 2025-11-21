@@ -8,10 +8,31 @@ const __dirname = path.dirname(__filename);
 const buildDir = path.join(__dirname, '../dist');
 const themeDir = path.join(__dirname, '../../dist');
 
-// Ensure theme dist directory exists
-if (!fs.existsSync(themeDir)) {
-  fs.mkdirSync(themeDir, { recursive: true });
+// Clean function - remove directory recursively
+function cleanDirectory(dir) {
+  if (fs.existsSync(dir)) {
+    try {
+      // Use fs.rmSync with recursive option (Node.js 14.14.0+)
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (error) {
+      // Fallback for older Node.js versions
+      if (fs.existsSync(dir)) {
+        fs.readdirSync(dir).forEach(file => {
+          const curPath = path.join(dir, file);
+          if (fs.lstatSync(curPath).isDirectory()) {
+            fs.rmSync(curPath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(curPath);
+          }
+        });
+        fs.rmdirSync(dir);
+      }
+    }
+  }
 }
+
+// Ensure theme dist directory exists (clean it first on initial setup)
+let isInitialCopy = true;
 
 // Copy function
 function copyRecursiveSync(src, dest) {
@@ -54,6 +75,19 @@ function copyFiles() {
     isCopying = true;
     
     try {
+      // Clean destination on initial copy
+      if (isInitialCopy) {
+        cleanDirectory(themeDir);
+        fs.mkdirSync(themeDir, { recursive: true });
+        isInitialCopy = false;
+      } else {
+        // On subsequent copies, clean only the assets folder to remove old build artifacts
+        const assetsDir = path.join(themeDir, 'assets');
+        if (fs.existsSync(assetsDir)) {
+          cleanDirectory(assetsDir);
+        }
+      }
+      
       copyRecursiveSync(buildDir, themeDir);
       const timestamp = new Date().toLocaleTimeString();
       console.log(`[${timestamp}] ✓ Files copied to theme directory`);

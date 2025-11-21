@@ -6,12 +6,13 @@ import NeuralBackground from '@/components/NeuralBackground';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import KeyInfoSection from '@/components/KeyInfoSection';
+import ArticleTitlesBackground from '@/components/ArticleTitlesBackground';
 import { getArticles, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
 import { Link } from 'react-router-dom';
-import { Video, Filter, Users } from 'lucide-react';
 
 export default function HomePage() {
   const [articles, setArticles] = useState<WordPressPost[]>([]);
+  const [backgroundArticles, setBackgroundArticles] = useState<WordPressPost[]>([]);
   const [tools, setTools] = useState<WordPressPost[]>([]);
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +20,14 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [articlesData, toolsData, orderedSteps] = await Promise.all([
+        const [articlesData, backgroundArticlesData, toolsData, orderedSteps] = await Promise.all([
           getArticles({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
+          getArticles({ per_page: 15, orderby: 'date', order: 'desc' }).catch(() => []),
           getTools({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
           getOrderedCourseSteps().catch(() => []),
         ]);
         setArticles(articlesData);
+        setBackgroundArticles(backgroundArticlesData);
         setTools(toolsData);
         setCourseSteps(orderedSteps);
       } catch (error) {
@@ -73,99 +76,21 @@ export default function HomePage() {
         ctaLink="/strategy-courses"
       />
 
-      {/* Value Proposition Section */}
-      <section className="py-16 bg-white relative overflow-hidden">
-        {/* Network pattern background - repeating pattern covering entire section, fades as it goes down */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0 opacity-100"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='400' height='300' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='netGrad' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%239ca3af' stop-opacity='0.35'/%3E%3Cstop offset='50%25' stop-color='%239ca3af' stop-opacity='0.22'/%3E%3Cstop offset='100%25' stop-color='%239ca3af' stop-opacity='0.08'/%3E%3C/linearGradient%3E%3ClinearGradient id='nodeGrad' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%239ca3af' stop-opacity='0.4'/%3E%3Cstop offset='50%25' stop-color='%239ca3af' stop-opacity='0.22'/%3E%3Cstop offset='100%25' stop-color='%239ca3af' stop-opacity='0.08'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg stroke='url(%23netGrad)' stroke-width='1.0' fill='none'%3E%3Cline x1='50' y1='50' x2='150' y2='40'/%3E%3Cline x1='150' y1='40' x2='250' y2='60'/%3E%3Cline x1='250' y1='60' x2='350' y2='50'/%3E%3Cline x1='50' y1='50' x2='100' y2='120'/%3E%3Cline x1='150' y1='40' x2='200' y2='110'/%3E%3Cline x1='250' y1='60' x2='300' y2='130'/%3E%3Cline x1='50' y1='50' x2='200' y2='110'/%3E%3Cline x1='150' y1='40' x2='300' y2='130'/%3E%3Cline x1='100' y1='120' x2='200' y2='110'/%3E%3Cline x1='200' y1='110' x2='300' y2='130'/%3E%3Cline x1='100' y1='120' x2='150' y2='180'/%3E%3Cline x1='200' y1='110' x2='250' y2='200'/%3E%3Cline x1='100' y1='120' x2='250' y2='200'/%3E%3Cline x1='150' y1='180' x2='250' y2='200'/%3E%3Cline x1='150' y1='180' x2='100' y2='240'/%3E%3Cline x1='250' y1='200' x2='200' y2='260'/%3E%3Cline x1='100' y1='240' x2='200' y2='260'/%3E%3Cline x1='200' y1='260' x2='300' y2='280'/%3E%3C/g%3E%3Cg fill='url(%23nodeGrad)'%3E%3Ccircle cx='50' cy='50' r='1.5'/%3E%3Ccircle cx='150' cy='40' r='1.5'/%3E%3Ccircle cx='250' cy='60' r='1.5'/%3E%3Ccircle cx='350' cy='50' r='1.5'/%3E%3Ccircle cx='100' cy='120' r='1.5'/%3E%3Ccircle cx='200' cy='110' r='1.5'/%3E%3Ccircle cx='300' cy='130' r='1.5'/%3E%3Ccircle cx='150' cy='180' r='1.2'/%3E%3Ccircle cx='250' cy='200' r='1.2'/%3E%3Ccircle cx='100' cy='240' r='1'/%3E%3Ccircle cx='200' cy='260' r='1'/%3E%3Ccircle cx='300' cy='280' r='0.8'/%3E%3C/g%3E%3C/svg%3E")`,
-            backgroundRepeat: 'repeat',
-            backgroundSize: '400px 300px',
-            backgroundPosition: '0 0',
-          }}
-          aria-hidden="true"
-        />
-        {/* Gradient overlay to fade pattern as it goes down */}
-        <div 
-          className="absolute inset-0 pointer-events-none z-0"
-          style={{
-            background: 'linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.7) 80%, white 100%)',
-          }}
-          aria-hidden="true"
-        />
-        
-        <div className="container-custom relative z-10">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white/80 backdrop-blur-sm rounded-lg px-6 py-8 mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6 text-center">
-              Digital → Disciple Making
-              </h2>
-              <p className="text-lg text-gray-700 leading-relaxed text-center">
-                It works like a funnel: (Start wide) Introduce masses of people to truth through targeted media content,
-                (Narrow down) filter out disinterested individuals through digital conversations, and (Release) ultimately connect
-                genuine seekers with face-to-face disciplers who walk with them toward becoming multiplying disciples.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6 mt-12">
-              <div className="text-center p-6 bg-background-50 rounded-lg">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                    <Video className="w-8 h-8 text-primary-600" />
-                  </div>
-                </div>
-                <div className="text-4xl font-bold text-primary-500 mb-2">1</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Media Content</h3>
-                <p className="text-sm text-gray-600">
-                  Targeted content reaches entire people groups through platforms like Facebook and Google Ads
-                </p>
-              </div>
-              <div className="text-center p-6 bg-background-50 rounded-lg">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                    <Filter className="w-8 h-8 text-primary-600" />
-                  </div>
-                </div>
-                <div className="text-4xl font-bold text-primary-500 mb-2">2</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Digital Filtering</h3>
-                <p className="text-sm text-gray-600">
-                  Trained responders dialogue with seekers online, identifying persons of peace ready for face-to-face engagement
-                </p>
-              </div>
-              <div className="text-center p-6 bg-background-50 rounded-lg">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                    <Users className="w-8 h-8 text-primary-600" />
-                  </div>
-                </div>
-                <div className="text-4xl font-bold text-primary-500 mb-2">3</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Face-to-Face</h3>
-                <p className="text-sm text-gray-600">
-                  Multipliers meet seekers in person, guiding them through discovery, obedience, and sharing in reproducing communities
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
-                What is media to movement?
-              </h2>
-              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                <iframe
-                  src="https://player.vimeo.com/video/436776178?title=0&byline=0&portrait=0"
-                  className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
-                  frameBorder="0"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                  title="Kingdom Training Video"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Newsletter CTA Section */}
+      <section className="relative py-12 bg-white overflow-hidden">
+        <ArticleTitlesBackground articles={backgroundArticles} />
+        <div className="relative z-10">
+          <NewsletterCTA
+            variant="banner"
+            title="Get the newest insights, techniques, and strategies."
+            description="Field driven tools and articles for disciple makers."
+            showEmailInput={true}
+            className="my-0"
+            whiteBackground={true}
+            noWrapper={true}
+          />
         </div>
       </section>
-
-
 
       {/* The MVP Course Feature - Primary Conversion */}
       <section className="relative py-20 bg-gradient-to-br from-secondary-900 to-secondary-700 text-white overflow-hidden">
@@ -291,19 +216,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Newsletter CTA Section */}
-      <NewsletterCTA
-        variant="banner"
-        title="Stay Connected"
-        description="Get the latest training resources, articles, and insights delivered directly to your inbox."
-        showEmailInput={true}
-        className="my-0"
-      />
 
       {/* Mission/Foundation Section */}
       <section className="py-20 bg-primary-800 text-white">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
+            {/* Video Section */}
+            <div className="mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-8">
+                What is Digital Disciple Making?
+              </h2>
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  src="https://player.vimeo.com/video/436776178?title=0&byline=0&portrait=0"
+                  className="absolute top-0 left-0 w-full h-full rounded-lg shadow-2xl"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title="Kingdom Training Video"
+                />
+              </div>
+            </div>
+
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               The Heavenly Economy
             </h2>
@@ -342,7 +276,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Key Information Section for Answer Engine Optimization */}
+     {/* Key Information Section for Answer Engine Optimization */}
       <KeyInfoSection
         title="Key Information About Media to Disciple Making Movements"
         items={[
@@ -351,12 +285,16 @@ export default function HomePage() {
             definition: 'Media to Disciple Making Movements (M2DMM) is a strategic approach that uses targeted media content to identify spiritual seekers online and connect them with face-to-face disciple-makers. The process involves three stages: (1) Media Content - targeted content reaches entire people groups through platforms like Facebook and Google Ads, (2) Digital Filtering - trained responders dialogue with seekers online, identifying persons of peace ready for face-to-face engagement, (3) Face-to-Face Discipleship - multipliers meet seekers in person, guiding them through discovery, obedience, and sharing in reproducing communities.',
           },
           {
+            term: 'What is digital disciple making?',
+            definition: 'Digital disciple making is the strategic use of all digital means—including social media, online advertising, AI tools, content creation, and digital communication platforms—to find seekers and bring them into relationship with Christ and his church in person. The ambition is to leverage every available digital tool and technique to identify spiritual seekers, engage them meaningfully online, and ultimately connect them with face-to-face discipleship communities where they can grow in their relationship with Jesus and participate in multiplying movements.',
+          },
+          {
             term: 'What is the MVP Strategy Course?',
             definition: 'The MVP (Minimum Viable Product) Strategy Course is a 10-step program that guides you through the core elements needed to craft a Media to Disciple Making Movements strategy for any context. The course helps you develop your complete M2DMM strategy and can be completed in 6-7 hours. It covers topics including media content creation, digital filtering strategies, face-to-face discipleship methods, and movement multiplication principles.',
           },
           {
-            term: 'What is Disciple.Tools?',
-            definition: 'Disciple.Tools is a free, open-source disciple relationship management system designed specifically for M2DMM practitioners. It helps track and manage disciple-making relationships, monitor progress, and facilitate the growth of Disciple Making Movements.',
+            term: 'What is AI for discipleship?',
+            definition: 'AI for discipleship empowers small teams to have a big impact by leveraging artificial intelligence tools and techniques. Kingdom.Training is bringing new techniques to accelerate small teams to use AI effectively in disciple making. These innovative approaches help teams scale their efforts, automate routine tasks, personalize engagement, and multiply their reach—enabling small groups to accomplish what previously required much larger teams.',
           },
           {
             term: 'What is the Heavenly Economy?',

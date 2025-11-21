@@ -135,10 +135,6 @@ export default function NewsletterPage() {
                 <ul className="space-y-3 text-gray-700">
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <span>Weekly updates on new training resources and courses</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
                     <span>Latest articles and insights on Media to Disciple Making Movements</span>
                   </li>
                   <li className="flex items-start gap-3">

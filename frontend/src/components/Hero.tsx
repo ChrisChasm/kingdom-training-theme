@@ -63,7 +63,7 @@ export default function Hero({
       </div>
 
       {/* Wave Divider */}
-      <div className="relative h-16 bg-white">
+      <div className="relative h-0 bg-white">
         <svg
           className="absolute top-0 w-full h-16 -mt-16"
           preserveAspectRatio="none"

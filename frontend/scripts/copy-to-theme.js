@@ -9,10 +9,34 @@ const __dirname = path.dirname(__filename);
 const buildDir = path.join(__dirname, '../dist');
 const themeDir = path.join(__dirname, '../../dist');
 
-// Ensure theme dist directory exists
-if (!fs.existsSync(themeDir)) {
-  fs.mkdirSync(themeDir, { recursive: true });
+// Clean function - remove directory recursively (using modern fs.rmSync if available)
+function cleanDirectory(dir) {
+  if (fs.existsSync(dir)) {
+    console.log('Cleaning existing theme dist directory...');
+    try {
+      // Use fs.rmSync with recursive option (Node.js 14.14.0+)
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (error) {
+      // Fallback for older Node.js versions
+      console.warn('fs.rmSync not available, using fallback method');
+      if (fs.existsSync(dir)) {
+        fs.readdirSync(dir).forEach(file => {
+          const curPath = path.join(dir, file);
+          if (fs.lstatSync(curPath).isDirectory()) {
+            fs.rmSync(curPath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(curPath);
+          }
+        });
+        fs.rmdirSync(dir);
+      }
+    }
+  }
 }
+
+// Clean and recreate theme dist directory
+cleanDirectory(themeDir);
+fs.mkdirSync(themeDir, { recursive: true });
 
 // Copy function
 function copyRecursiveSync(src, dest) {

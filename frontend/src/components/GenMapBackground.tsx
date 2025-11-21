@@ -455,40 +455,34 @@ export default function GenMapBackground() {
                     background: linear-gradient(135deg, #242526 0%, #18191a 100%);
                 }
 
-                .genmap-bg-container .play-button {
+                .genmap-bg-container .gear-image-container {
                     position: absolute;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    width: 68px;
-                    height: 48px;
-                    opacity: 0;
-                    animation: playButtonPulse 2s ease-in-out infinite;
-                    transition: opacity 0.5s ease;
+                    z-index: 10;
                     pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
-                /* Show only the active platform's play button */
-                .genmap-bg-container .youtube-layer[data-platform="youtube"] .youtube-play {
+                .genmap-bg-container .gear-image {
+                    width: 160px;
+                    height: 160px;
+                    animation: rotateGear 3s linear infinite;
                     opacity: 0.9;
                 }
 
-                .genmap-bg-container .youtube-layer[data-platform="tiktok"] .tiktok-play {
-                    opacity: 0.9;
-                }
-
-                .genmap-bg-container .youtube-layer[data-platform="facebook"] .facebook-play {
-                    opacity: 0.9;
-                }
-
-                @keyframes playButtonPulse {
-                    0%, 100% {
-                        transform: translate(-50%, -50%) scale(1);
+                @keyframes rotateGear {
+                    from {
+                        transform: rotate(0deg);
                     }
-                    50% {
-                        transform: translate(-50%, -50%) scale(1.1);
+                    to {
+                        transform: rotate(360deg);
                     }
                 }
+
 
                 .genmap-bg-container .player-controls {
                     background: #181818;
@@ -581,6 +575,11 @@ export default function GenMapBackground() {
                         width: 120px;
                         height: 68px;
                     }
+
+                    .genmap-bg-container .gear-image {
+                        width: 120px;
+                        height: 120px;
+                    }
                 }
 
                 @media (max-width: 480px) {
@@ -595,14 +594,14 @@ export default function GenMapBackground() {
                         height: 51px;
                     }
                     
-                    .genmap-bg-container .play-button {
-                        width: 48px;
-                        height: 34px;
-                    }
-                    
                     .genmap-bg-container .control-icon {
                         width: 20px;
                         height: 20px;
+                    }
+
+                    .genmap-bg-container .gear-image {
+                        width: 90px;
+                        height: 90px;
                     }
                 }
             `}</style>
@@ -624,26 +623,13 @@ export default function GenMapBackground() {
                 <div ref={youtubeLayerRef} className="youtube-layer absolute" data-platform="youtube" style={{ top: '8%', right: '5%', width: '90%', maxWidth: '640px', zIndex: 10 }}>
                     <div className="youtube-player">
                         <div ref={playerScreenRef} className="player-screen">
-                            {/* YouTube Play Button */}
-                            <div className="play-button youtube-play">
-                                <svg viewBox="0 0 68 48">
-                                    <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#FF0000"/>
-                                    <path d="M 45,24 27,14 27,34" fill="#FFFFFF"/>
-                                </svg>
-                            </div>
-                            {/* TikTok Play Button */}
-                            <div className="play-button tiktok-play">
-                                <svg viewBox="0 0 48 48" style={{width: '60px', height: '60px'}}>
-                                    <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.2)" stroke="white" strokeWidth="2"/>
-                                    <path d="M 18,14 L 18,34 L 32,24 Z" fill="white"/>
-                                </svg>
-                            </div>
-                            {/* Facebook Play Button */}
-                            <div className="play-button facebook-play">
-                                <svg viewBox="0 0 48 48" style={{width: '60px', height: '60px'}}>
-                                    <circle cx="24" cy="24" r="22" fill="rgba(24, 119, 242, 0.9)"/>
-                                    <path d="M 18,14 L 18,34 L 32,24 Z" fill="white"/>
-                                </svg>
+                            {/* Spinning Gear */}
+                            <div className="gear-image-container">
+                                <img 
+                                    src="/gear.png" 
+                                    alt="Spinning gear" 
+                                    className="gear-image"
+                                />
                             </div>
                         </div>
                         <div className="player-controls">
