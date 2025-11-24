@@ -61,8 +61,13 @@
 }
 
 /* Content typography styles for WordPress content */
+.prose {
+  color: #000000 !important; /* Override --tw-prose-body to use black */
+}
+
 .prose p {
   @apply my-6 leading-relaxed;
+  color: #000000 !important; /* Ensure paragraphs are black */
 }
 
 .prose h1 {
@@ -109,6 +114,7 @@
 
 .prose li {
   @apply my-2;
+  color: #000000 !important; /* Ensure list items are black */
 }
 
 .prose blockquote {
