@@ -143,12 +143,12 @@ export default function Footer() {
               About
             </a>
             <span className="hidden md:inline text-secondary-600">|</span>
-            <a 
-              href="https://ai.kingdom.training/privacy-policy/" 
+            <Link 
+              to="/privacy" 
               className="text-sm text-secondary-200 hover:text-white transition-colors"
             >
               Privacy Policy
-            </a>
+            </Link>
           </div>
           <p className="text-sm text-secondary-200 text-center">
             &copy; {currentYear} Kingdom.Training. All rights reserved.

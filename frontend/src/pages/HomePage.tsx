@@ -84,7 +84,7 @@ export default function HomePage() {
             variant="banner"
             title="Get the newest insights, techniques, and strategies."
             description="Field driven tools and articles for disciple makers."
-            showEmailInput={true}
+            showEmailInput={false}
             className="my-0"
             whiteBackground={true}
             noWrapper={true}

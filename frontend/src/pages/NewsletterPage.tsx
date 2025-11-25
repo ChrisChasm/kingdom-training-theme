@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import SEO from '@/components/SEO';
 import { renderShortcode } from '@/lib/wordpress';
@@ -437,9 +438,9 @@ export default function NewsletterPage() {
               <div className="mt-6 text-sm text-gray-600 text-center">
                 <p>
                   We respect your privacy. Unsubscribe at any time. 
-                  <a href="/about" className="text-primary-500 hover:text-primary-600 ml-1">
+                  <Link to="/privacy" className="text-primary-500 hover:text-primary-600 ml-1">
                     Learn more about our privacy policy
-                  </a>
+                  </Link>
                 </p>
               </div>
             </div>
