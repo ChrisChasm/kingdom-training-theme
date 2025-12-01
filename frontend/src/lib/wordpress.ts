@@ -17,6 +17,34 @@ const getAPIUrl = () => {
 
 const API_URL = getAPIUrl();
 
+export interface Translation {
+  id: number;
+  slug: string;
+  language: string;
+  link: string;
+}
+
+export interface Language {
+  term_id: number;
+  name: string;
+  slug: string;
+  locale: string;
+  w3c: string;
+  facebook: string;
+  is_rtl: boolean;
+  term_group: number;
+  flag_code: string;
+  flag_url: string;
+  flag: string;
+  custom_flag_url?: string;
+  custom_flag?: string;
+  is_default: boolean;
+  active: boolean;
+  home_url: string;
+  search_url: string;
+  host: string;
+}
+
 export interface WordPressPost {
   id: number;
   date: string;
@@ -44,6 +72,8 @@ export interface WordPressPost {
   categories?: number[];
   tags?: number[];
   steps?: number | null; // Step number meta field for strategy courses
+  language?: string; // Language code (slug) from Polylang
+  translations?: Translation[]; // Alternate language versions
   _embedded?: any;
 }
 
@@ -182,6 +212,7 @@ export async function getPosts(params: {
   tags?: string;
   orderby?: string;
   order?: 'asc' | 'desc';
+  lang?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -198,9 +229,10 @@ export async function getPosts(params: {
 /**
  * Get a single post by slug
  */
-export async function getPostBySlug(slug: string): Promise<WordPressPost | null> {
+export async function getPostBySlug(slug: string, lang?: string): Promise<WordPressPost | null> {
   try {
-    const posts = await fetchAPI(`/wp/v2/posts?slug=${slug}&_embed`);
+    const langParam = lang ? `&lang=${lang}` : '';
+    const posts = await fetchAPI(`/wp/v2/posts?slug=${slug}&_embed${langParam}`);
     return posts[0] || null;
   } catch (error) {
     console.error(`Error fetching post ${slug}:`, error);
@@ -218,6 +250,7 @@ export async function getStrategyCourses(params: {
   order?: 'asc' | 'desc';
   strategy_course_categories?: string;
   search?: string;
+  lang?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -239,9 +272,10 @@ export async function getStrategyCourses(params: {
 /**
  * Get a single strategy course by slug
  */
-export async function getStrategyCourseBySlug(slug: string): Promise<WordPressPost | null> {
+export async function getStrategyCourseBySlug(slug: string, lang?: string): Promise<WordPressPost | null> {
   try {
-    const courses = await fetchAPI(`/wp/v2/strategy-courses?slug=${slug}&_embed`);
+    const langParam = lang ? `&lang=${lang}` : '';
+    const courses = await fetchAPI(`/wp/v2/strategy-courses?slug=${slug}&_embed${langParam}`);
     return courses[0] || null;
   } catch (error) {
     console.error(`Error fetching strategy course ${slug}:`, error);
@@ -259,6 +293,7 @@ export async function getArticles(params: {
   order?: 'asc' | 'desc';
   article_categories?: string;
   tags?: string;
+  lang?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -280,9 +315,10 @@ export async function getArticles(params: {
 /**
  * Get a single article by slug
  */
-export async function getArticleBySlug(slug: string): Promise<WordPressPost | null> {
+export async function getArticleBySlug(slug: string, lang?: string): Promise<WordPressPost | null> {
   try {
-    const articles = await fetchAPI(`/wp/v2/articles?slug=${slug}&_embed`);
+    const langParam = lang ? `&lang=${lang}` : '';
+    const articles = await fetchAPI(`/wp/v2/articles?slug=${slug}&_embed${langParam}`);
     return articles[0] || null;
   } catch (error) {
     console.error(`Error fetching article ${slug}:`, error);
@@ -301,6 +337,7 @@ export async function getTools(params: {
   tool_categories?: string;
   tags?: string;
   search?: string;
+  lang?: string;
 } = {}): Promise<WordPressPost[]> {
   const queryParams = new URLSearchParams(
     Object.entries(params).reduce((acc, [key, value]) => {
@@ -322,9 +359,10 @@ export async function getTools(params: {
 /**
  * Get a single tool by slug
  */
-export async function getToolBySlug(slug: string): Promise<WordPressPost | null> {
+export async function getToolBySlug(slug: string, lang?: string): Promise<WordPressPost | null> {
   try {
-    const tools = await fetchAPI(`/wp/v2/tools?slug=${slug}&_embed`);
+    const langParam = lang ? `&lang=${lang}` : '';
+    const tools = await fetchAPI(`/wp/v2/tools?slug=${slug}&_embed${langParam}`);
     return tools[0] || null;
   } catch (error) {
     console.error(`Error fetching tool ${slug}:`, error);
@@ -334,19 +372,39 @@ export async function getToolBySlug(slug: string): Promise<WordPressPost | null>
 
 /**
  * Get ordered strategy course steps (courses with steps meta field)
- * Returns courses sorted by steps number (1-20)
+ * Returns courses sorted by steps number (1-20), filtered by language
  */
-export async function getOrderedCourseSteps(): Promise<WordPressPost[]> {
+export async function getOrderedCourseSteps(lang?: string, defaultLang?: string | null): Promise<WordPressPost[]> {
   try {
+    // Determine target language: use provided lang, or defaultLang, or null for default
+    const targetLang = lang || defaultLang || null;
+    
     const allCourses = await getStrategyCourses({
       per_page: 100,
       orderby: 'date',
-      order: 'desc'
+      order: 'desc',
+      lang: targetLang || undefined
     });
 
-    // Filter courses that have a steps meta field and sort by steps number
+    // Filter courses that have a steps meta field, match the target language, and sort by steps number
     const coursesWithSteps = allCourses
-      .filter(course => course.steps !== null && course.steps !== undefined && course.steps >= 1 && course.steps <= 20)
+      .filter(course => {
+        // Must have a steps meta field
+        if (course.steps === null || course.steps === undefined || course.steps < 1 || course.steps > 20) {
+          return false;
+        }
+        
+        // Filter by language: ensure we only include courses matching the target language
+        // If targetLang is null (default language), include posts with null/undefined language
+        // If targetLang is set, only include posts matching that language
+        if (targetLang === null) {
+          // Default language: include posts with null/undefined language
+          return course.language === null || course.language === undefined;
+        } else {
+          // Specific language: only include posts matching that language
+          return course.language === targetLang;
+        }
+      })
       .sort((a, b) => {
         const stepA = a.steps || 0;
         const stepB = b.steps || 0;
@@ -363,16 +421,18 @@ export async function getOrderedCourseSteps(): Promise<WordPressPost[]> {
 /**
  * Get pages
  */
-export async function getPages(): Promise<WordPressPost[]> {
-  return fetchAPI('/wp/v2/pages');
+export async function getPages(lang?: string): Promise<WordPressPost[]> {
+  const langParam = lang ? `?lang=${lang}` : '';
+  return fetchAPI(`/wp/v2/pages${langParam}`);
 }
 
 /**
  * Get a single page by slug
  */
-export async function getPageBySlug(slug: string): Promise<WordPressPost | null> {
+export async function getPageBySlug(slug: string, lang?: string): Promise<WordPressPost | null> {
   try {
-    const pages = await fetchAPI(`/wp/v2/pages?slug=${slug}&_embed`);
+    const langParam = lang ? `&lang=${lang}` : '';
+    const pages = await fetchAPI(`/wp/v2/pages?slug=${slug}&_embed${langParam}`);
     return pages[0] || null;
   } catch (error) {
     console.error(`Error fetching page ${slug}:`, error);
@@ -608,5 +668,56 @@ export async function renderShortcode(shortcode: string): Promise<string> {
   }
 
   return data.html || '';
+}
+
+/**
+ * Get available languages from Polylang REST API
+ */
+export async function getLanguages(): Promise<Language[]> {
+  try {
+    return await fetchAPI('/pll/v1/languages');
+  } catch (error) {
+    console.error('Error fetching languages:', error);
+    return [];
+  }
+}
+
+/**
+ * Get current language from URL path
+ * Extracts language code from URL structure: /es/pagename or /pagename (default)
+ * @returns Language code (slug) or null if not found/default
+ */
+export function getCurrentLanguage(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const pathname = window.location.pathname;
+  // Remove leading and trailing slashes, then split
+  const parts = pathname.replace(/^\/|\/$/g, '').split('/');
+  
+  // Check if first part is a language code (2-3 characters, common language codes)
+  // Common language codes: en, es, fr, de, it, pt, etc.
+  if (parts.length > 0 && parts[0].length >= 2 && parts[0].length <= 3) {
+    // This is a simple heuristic - in production, you might want to validate
+    // against the list of available languages
+    return parts[0];
+  }
+  
+  return null; // Default language (no prefix)
+}
+
+/**
+ * Get default language from Polylang
+ */
+export async function getDefaultLanguage(): Promise<string | null> {
+  try {
+    const languages = await getLanguages();
+    const defaultLang = languages.find(lang => lang.is_default);
+    return defaultLang ? defaultLang.slug : null;
+  } catch (error) {
+    console.error('Error fetching default language:', error);
+    return null;
+  }
 }
 

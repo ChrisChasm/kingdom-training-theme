@@ -1,18 +1,30 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import LLMBackground from '@/components/LLMBackground';
 import SEO from '@/components/SEO';
-import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
+import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag, getDefaultLanguage } from '@/lib/wordpress';
+import { parseLanguageFromPath } from '@/lib/utils';
 
 export default function ToolsPage() {
+  const { lang } = useParams<{ lang?: string }>();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [tools, setTools] = useState<WordPressPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -21,19 +33,34 @@ export default function ToolsPage() {
         const categoryId = searchParams.get('category');
         const tagId = searchParams.get('tag');
 
+        // Determine target language: use provided lang, or defaultLang, or null for default
+        const targetLang = currentLang || defaultLang || null;
+
         const [toolsData, categoriesData, tagsData] = await Promise.all([
           getTools({
             per_page: 100,
             orderby: 'date',
             order: 'desc',
             tool_categories: categoryId || undefined,
-            tags: tagId || undefined
+            tags: tagId || undefined,
+            lang: targetLang || undefined
           }),
           getToolCategories(),
           getTags({ hide_empty: true, post_type: 'tools' })
         ]);
 
-        setTools(toolsData);
+        // Filter tools by language to ensure only matching language is shown
+        const filteredTools = toolsData.filter(tool => {
+          if (targetLang === null) {
+            // Default language: include posts with null/undefined language
+            return tool.language === null || tool.language === undefined;
+          } else {
+            // Specific language: only include posts matching that language
+            return tool.language === targetLang;
+          }
+        });
+
+        setTools(filteredTools);
         setCategories(categoriesData);
         setTags(tagsData);
       } catch (error) {
@@ -44,7 +71,7 @@ export default function ToolsPage() {
       }
     }
     fetchData();
-  }, [searchParams]);
+  }, [searchParams, currentLang, defaultLang]);
 
   if (loading) {
     return (
@@ -80,7 +107,7 @@ export default function ToolsPage() {
               <Sidebar
                 categories={categories}
                 tags={tags}
-                basePath="/tools"
+                basePath={currentLang ? `/${currentLang}/tools` : '/tools'}
               />
             </div>
 
@@ -89,7 +116,7 @@ export default function ToolsPage() {
               {tools.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {tools.map((tool) => (
-                    <ContentCard key={tool.id} post={tool} type="tools" />
+                    <ContentCard key={tool.id} post={tool} type="tools" lang={currentLang || null} defaultLang={defaultLang} />
                   ))}
                 </div>
               ) : (

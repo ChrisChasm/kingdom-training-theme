@@ -201,3 +201,68 @@ export function getThemeAssetUrl(filename: string): string {
   return `/${filename}`;
 }
 
+/**
+ * Language URL utilities
+ * Functions for handling language codes in URLs
+ */
+
+/**
+ * Parse language from URL path
+ * Extracts language code and remaining path from URL structure
+ * @param pathname - The pathname to parse (e.g., '/es/articles' or '/articles')
+ * @returns Object with language code and path, or null if no language found
+ */
+export function parseLanguageFromPath(pathname: string): { lang: string | null; path: string } {
+  // Remove leading and trailing slashes, then split
+  const parts = pathname.replace(/^\/|\/$/g, '').split('/');
+  
+  // Check if first part is a language code (2-3 characters)
+  if (parts.length > 0 && parts[0].length >= 2 && parts[0].length <= 3) {
+    const lang = parts[0];
+    const remainingPath = '/' + parts.slice(1).join('/');
+    return { lang, path: remainingPath || '/' };
+  }
+  
+  // No language prefix - default language
+  return { lang: null, path: pathname || '/' };
+}
+
+/**
+ * Build URL with language prefix
+ * Adds language code to URL path if not default language
+ * @param path - The path to add language to (e.g., '/articles')
+ * @param lang - Language code (e.g., 'es') or null for default language
+ * @param defaultLang - Default language code (e.g., 'en') - if lang matches, no prefix is added
+ * @returns URL with language prefix if needed (e.g., '/es/articles' or '/articles')
+ */
+export function buildLanguageUrl(path: string, lang: string | null, defaultLang: string | null = null): string {
+  // Normalize path
+  const normalizedPath = path.startsWith('/') ? path : '/' + path;
+  
+  // If no language or matches default, return path as-is
+  if (!lang || lang === defaultLang) {
+    return normalizedPath;
+  }
+  
+  // Add language prefix
+  return `/${lang}${normalizedPath}`;
+}
+
+/**
+ * Switch language in current URL
+ * Replaces language code in current URL path
+ * @param newLang - New language code (e.g., 'es') or null for default
+ * @param defaultLang - Default language code
+ * @returns New URL path with updated language
+ */
+export function switchLanguageInUrl(newLang: string | null, defaultLang: string | null = null): string {
+  if (typeof window === 'undefined') {
+    return '/';
+  }
+  
+  const currentPath = window.location.pathname;
+  const { path } = parseLanguageFromPath(currentPath);
+  
+  return buildLanguageUrl(path, newLang, defaultLang);
+}
+

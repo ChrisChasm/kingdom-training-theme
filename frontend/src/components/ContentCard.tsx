@@ -5,19 +5,27 @@
 
 import { Link } from 'react-router-dom';
 import { WordPressPost } from '@/lib/wordpress';
-import { formatDate, stripHtml, truncate } from '@/lib/utils';
+import { formatDate, stripHtml, truncate, buildLanguageUrl } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ContentCardProps {
   post: WordPressPost;
   type: 'strategy-courses' | 'articles' | 'tools';
+  lang?: string | null;
+  defaultLang?: string | null;
 }
 
-export default function ContentCard({ post, type }: ContentCardProps) {
+export default function ContentCard({ post, type, lang, defaultLang }: ContentCardProps) {
+  const { t } = useTranslation();
   const excerpt = stripHtml(post.excerpt.rendered);
   const truncatedExcerpt = truncate(excerpt, 150);
+  
+  // Build language-aware URL
+  const basePath = `/${type}/${post.slug}`;
+  const url = buildLanguageUrl(basePath, lang || null, defaultLang || null);
 
   return (
-    <Link to={`/${type}/${post.slug}`} className="card group">
+    <Link to={url} className="card group">
       {/* Featured Image */}
       {post.featured_image_url && (
         <div className="aspect-video bg-gray-200 overflow-hidden">
@@ -50,7 +58,7 @@ export default function ContentCard({ post, type }: ContentCardProps) {
 
         {/* Read More Link */}
         <span className="text-primary-500 font-medium text-sm group-hover:text-primary-600 inline-flex items-center">
-          Learn more
+          {t('ui_read_more')}
           <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>

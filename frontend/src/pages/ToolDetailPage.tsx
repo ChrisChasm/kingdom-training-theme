@@ -1,19 +1,31 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getToolBySlug, getTools, WordPressPost } from '@/lib/wordpress';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { getToolBySlug, getTools, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useTranslation } from '@/hooks/useTranslation';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import AdminEditLink from '@/components/AdminEditLink';
 import FeaturedImage from '@/components/FeaturedImage';
-import { stripHtml } from '@/lib/utils';
+import { stripHtml, parseLanguageFromPath } from '@/lib/utils';
 
 export default function ToolDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, lang } = useParams<{ slug: string; lang?: string }>();
+  const location = useLocation();
+  const { t } = useTranslation();
   const [tool, setTool] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [additionalTools, setAdditionalTools] = useState<WordPressPost[]>([]);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchTool() {
@@ -24,18 +36,35 @@ export default function ToolDetailPage() {
       }
 
       try {
-        const data = await getToolBySlug(slug);
+        // Determine target language: use provided lang, or defaultLang, or null for default
+        const targetLang = currentLang || defaultLang || null;
+
+        const data = await getToolBySlug(slug, currentLang);
         if (data) {
           setTool(data);
           
-          // Fetch additional tools (excluding current one)
+          // Fetch additional tools (excluding current one) in same language
           const tools = await getTools({
             per_page: 10,
             orderby: 'date',
-            order: 'desc'
+            order: 'desc',
+            lang: targetLang || undefined
           });
-          // Filter out current tool
-          const filtered = tools.filter(t => t.id !== data.id).slice(0, 9);
+          
+          // Filter by language and exclude current tool
+          const filtered = tools
+            .filter(tool => {
+              // Filter by language
+              if (targetLang === null) {
+                // Default language: include posts with null/undefined language
+                return tool.language === null || tool.language === undefined;
+              } else {
+                // Specific language: only include posts matching that language
+                return tool.language === targetLang;
+              }
+            })
+            .filter(t => t.id !== data.id)
+            .slice(0, 9);
           setAdditionalTools(filtered);
         } else {
           setError(true);
@@ -48,7 +77,7 @@ export default function ToolDetailPage() {
       }
     }
     fetchTool();
-  }, [slug]);
+  }, [slug, currentLang, defaultLang]);
 
   if (loading) {
     return (
@@ -66,8 +95,8 @@ export default function ToolDetailPage() {
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Tool Not Found</h1>
         <p className="text-gray-600 mb-8">The tool you're looking for doesn't exist.</p>
-        <Link to="/tools" className="text-primary-500 hover:text-primary-600 font-medium">
-          ← Back to Tools
+        <Link to={currentLang ? `/${currentLang}/tools` : '/tools'} className="text-primary-500 hover:text-primary-600 font-medium">
+          ← {t('ui_back_to')} {t('nav_tools')}
         </Link>
       </div>
     );
@@ -161,13 +190,13 @@ export default function ToolDetailPage() {
                   Additional Tool Resources
                 </h2>
                 <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
-                  Discover supplementary tools and resources to enhance your M2DMM strategy development and practice.
+                  {t('msg_discover_supplementary')}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {additionalTools.map((tool) => (
-                  <ContentCard key={tool.id} post={tool} type="tools" />
+                  <ContentCard key={tool.id} post={tool} type="tools" lang={currentLang || null} defaultLang={defaultLang} />
                 ))}
               </div>
             </div>

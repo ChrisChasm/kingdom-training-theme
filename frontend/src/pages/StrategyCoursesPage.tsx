@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import NeuralBackground from '@/components/NeuralBackground';
 import SEO from '@/components/SEO';
 import { ChevronRight } from 'lucide-react';
-import { getStrategyCourses, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
-import { getThemeAssetUrl } from '@/lib/utils';
+import { getStrategyCourses, getOrderedCourseSteps, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { getThemeAssetUrl, parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
 
 export interface CourseStep {
   number: number;
@@ -16,24 +16,36 @@ export interface CourseStep {
 }
 
 export default function StrategyCoursesPage() {
+  const { lang } = useParams<{ lang?: string }>();
+  const location = useLocation();
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
   const roadmapRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchCourses() {
       try {
         // Fetch ordered course steps from database
-        const orderedSteps = await getOrderedCourseSteps();
+        const orderedSteps = await getOrderedCourseSteps(currentLang, defaultLang);
         setCourseSteps(orderedSteps);
         
         // Fetch all courses to find additional resources
         const allCourses = await getStrategyCourses({ 
           per_page: 100, 
           orderby: 'date', 
-          order: 'desc' 
+          order: 'desc',
+          lang: currentLang
         });
         
         // Get slugs of courses with steps to filter them out
@@ -54,7 +66,7 @@ export default function StrategyCoursesPage() {
       }
     }
     fetchCourses();
-  }, []);
+  }, [currentLang, defaultLang]);
 
   // Parallax effect for roadmap
   useEffect(() => {
@@ -148,7 +160,7 @@ export default function StrategyCoursesPage() {
                       
                       {/* Step Card */}
                       <Link
-                        to={`/strategy-courses/${step.slug}`}
+                        to={buildLanguageUrl(`/strategy-courses/${step.slug}`, currentLang || null, defaultLang)}
                         className="group relative flex items-start gap-6 p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:shadow-lg transition-all duration-200"
                       >
                         {/* Step Number Circle */}
@@ -187,7 +199,7 @@ export default function StrategyCoursesPage() {
                 {courseSteps.length > 0 && (
                   <div className="mt-12 text-center">
                     <Link
-                      to={`/strategy-courses/${courseSteps[0].slug}`}
+                      to={buildLanguageUrl(`/strategy-courses/${courseSteps[0].slug}`, currentLang || null, defaultLang)}
                       className="inline-flex items-center justify-center px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors duration-200 text-lg"
                     >
                       Start Step {courseSteps[0].steps || 1}: {courseSteps[0].title.rendered}
@@ -221,7 +233,7 @@ export default function StrategyCoursesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {additionalResources.map((resource) => (
-                  <ContentCard key={resource.id} post={resource} type="strategy-courses" />
+                  <ContentCard key={resource.id} post={resource} type="strategy-courses" lang={currentLang || null} defaultLang={defaultLang} />
                 ))}
               </div>
             </div>

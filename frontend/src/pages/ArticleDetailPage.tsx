@@ -1,19 +1,31 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getArticleBySlug, getArticles, WordPressPost } from '@/lib/wordpress';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { getArticleBySlug, getArticles, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useTranslation } from '@/hooks/useTranslation';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import AdminEditLink from '@/components/AdminEditLink';
 import FeaturedImage from '@/components/FeaturedImage';
-import { stripHtml } from '@/lib/utils';
+import { stripHtml, parseLanguageFromPath } from '@/lib/utils';
 
 export default function ArticleDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, lang } = useParams<{ slug: string; lang?: string }>();
+  const location = useLocation();
+  const { t } = useTranslation();
   const [article, setArticle] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [relatedArticles, setRelatedArticles] = useState<WordPressPost[]>([]);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -24,18 +36,35 @@ export default function ArticleDetailPage() {
       }
 
       try {
-        const data = await getArticleBySlug(slug);
+        // Determine target language: use provided lang, or defaultLang, or null for default
+        const targetLang = currentLang || defaultLang || null;
+
+        const data = await getArticleBySlug(slug, currentLang);
         if (data) {
           setArticle(data);
           
-          // Fetch additional articles (excluding current one)
+          // Fetch additional articles (excluding current one) in same language
           const articles = await getArticles({
             per_page: 10,
             orderby: 'date',
-            order: 'desc'
+            order: 'desc',
+            lang: targetLang || undefined
           });
-          // Filter out current article
-          const filtered = articles.filter(a => a.id !== data.id).slice(0, 9);
+          
+          // Filter by language and exclude current article
+          const filtered = articles
+            .filter(article => {
+              // Filter by language
+              if (targetLang === null) {
+                // Default language: include posts with null/undefined language
+                return article.language === null || article.language === undefined;
+              } else {
+                // Specific language: only include posts matching that language
+                return article.language === targetLang;
+              }
+            })
+            .filter(a => a.id !== data.id)
+            .slice(0, 9);
           setRelatedArticles(filtered);
         } else {
           setError(true);
@@ -48,7 +77,7 @@ export default function ArticleDetailPage() {
       }
     }
     fetchArticle();
-  }, [slug]);
+  }, [slug, currentLang, defaultLang]);
 
   if (loading) {
     return (
@@ -66,8 +95,8 @@ export default function ArticleDetailPage() {
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Article Not Found</h1>
         <p className="text-gray-600 mb-8">The article you're looking for doesn't exist.</p>
-        <Link to="/articles" className="text-primary-500 hover:text-primary-600 font-medium">
-          ← Back to Articles
+        <Link to={currentLang ? `/${currentLang}/articles` : '/articles'} className="text-primary-500 hover:text-primary-600 font-medium">
+          ← {t('ui_back_to')} {t('nav_articles')}
         </Link>
       </div>
     );
@@ -161,13 +190,13 @@ export default function ArticleDetailPage() {
                   Additional Article Resources
                 </h2>
                 <p className="text-lg text-gray-700 leading-relaxed max-w-3xl mx-auto">
-                  Discover more articles and resources to deepen your understanding and enhance your M2DMM practice.
+                  {t('msg_discover_more')}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {relatedArticles.map((relatedArticle) => (
-                  <ContentCard key={relatedArticle.id} post={relatedArticle} type="articles" />
+                  <ContentCard key={relatedArticle.id} post={relatedArticle} type="articles" lang={currentLang || null} defaultLang={defaultLang} />
                 ))}
               </div>
             </div>

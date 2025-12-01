@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost } from '@/lib/wordpress';
-import { markStepCompleted, stripHtml } from '@/lib/utils';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { markStepCompleted, stripHtml, parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
@@ -11,12 +11,22 @@ import FeaturedImage from '@/components/FeaturedImage';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function StrategyCourseDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, lang } = useParams<{ slug: string; lang?: string }>();
+  const location = useLocation();
   const [course, setCourse] = useState<WordPressPost | null>(null);
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   // Scroll to top when navigating to a new course page
   useEffect(() => {
@@ -27,14 +37,15 @@ export default function StrategyCourseDetailPage() {
   useEffect(() => {
     async function fetchCourseSteps() {
       try {
-        const steps = await getOrderedCourseSteps();
+        const steps = await getOrderedCourseSteps(currentLang, defaultLang);
         setCourseSteps(steps);
         
         // Fetch additional resources (courses not in ordered steps, excluding current course)
         const allCourses = await getStrategyCourses({ 
           per_page: 100, 
           orderby: 'date', 
-          order: 'desc' 
+          order: 'desc',
+          lang: currentLang
         });
         
         // Get slugs of courses with steps to filter them out
@@ -53,7 +64,7 @@ export default function StrategyCourseDetailPage() {
       }
     }
     fetchCourseSteps();
-  }, [slug]);
+  }, [slug, currentLang, defaultLang]);
 
   // Find current step and navigation steps
   const { currentStep, nextStep, previousStep } = useMemo(() => {
@@ -83,7 +94,7 @@ export default function StrategyCourseDetailPage() {
       }
 
       try {
-        const data = await getStrategyCourseBySlug(slug);
+        const data = await getStrategyCourseBySlug(slug, currentLang);
         if (data) {
           setCourse(data);
           
@@ -105,7 +116,7 @@ export default function StrategyCourseDetailPage() {
       }
     }
     fetchCourse();
-  }, [slug]);
+  }, [slug, currentLang]);
 
   if (loading) {
     return (
@@ -123,7 +134,7 @@ export default function StrategyCourseDetailPage() {
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Course Not Found</h1>
         <p className="text-gray-600 mb-8">The course you're looking for doesn't exist.</p>
-        <Link to="/strategy-courses" className="text-primary-500 hover:text-primary-600 font-medium">
+        <Link to={buildLanguageUrl('/strategy-courses', currentLang || null, defaultLang)} className="text-primary-500 hover:text-primary-600 font-medium">
           ← Back to Strategy Courses
         </Link>
       </div>
@@ -245,7 +256,7 @@ export default function StrategyCourseDetailPage() {
                 {/* Previous Button */}
                 {previousStep ? (
                   <Link
-                    to={`/strategy-courses/${previousStep.slug}`}
+                    to={buildLanguageUrl(`/strategy-courses/${previousStep.slug}`, currentLang || null, defaultLang)}
                     className="inline-flex items-center px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:border-primary-500 hover:text-primary-600 transition-all duration-200"
                   >
                     <ChevronLeft className="w-5 h-5 mr-2" />
@@ -261,7 +272,7 @@ export default function StrategyCourseDetailPage() {
                 {/* Next Button */}
                 {nextStep ? (
                   <Link
-                    to={`/strategy-courses/${nextStep.slug}`}
+                    to={buildLanguageUrl(`/strategy-courses/${nextStep.slug}`, currentLang || null, defaultLang)}
                     className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors duration-200"
                   >
                     <div className="text-right mr-2">
@@ -272,7 +283,7 @@ export default function StrategyCourseDetailPage() {
                   </Link>
                 ) : (
                   <Link
-                    to="/strategy-courses"
+                    to={buildLanguageUrl('/strategy-courses', currentLang || null, defaultLang)}
                     className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors duration-200"
                   >
                     <span>Back to Course Overview</span>
@@ -301,7 +312,7 @@ export default function StrategyCourseDetailPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {additionalResources.map((resource) => (
-                  <ContentCard key={resource.id} post={resource} type="strategy-courses" />
+                  <ContentCard key={resource.id} post={resource} type="strategy-courses" lang={currentLang || null} defaultLang={defaultLang} />
                 ))}
               </div>
             </div>

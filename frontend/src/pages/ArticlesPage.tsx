@@ -1,18 +1,30 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import IdeasBackground from '@/components/IdeasBackground';
 import SEO from '@/components/SEO';
-import { getArticles, getArticleCategories, getTags, WordPressPost, Category, Tag } from '@/lib/wordpress';
+import { getArticles, getArticleCategories, getTags, WordPressPost, Category, Tag, getDefaultLanguage } from '@/lib/wordpress';
+import { parseLanguageFromPath } from '@/lib/utils';
 
 export default function ArticlesPage() {
+  const { lang } = useParams<{ lang?: string }>();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [articles, setArticles] = useState<WordPressPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -21,19 +33,34 @@ export default function ArticlesPage() {
         const categoryId = searchParams.get('category');
         const tagId = searchParams.get('tag');
 
+        // Determine target language: use provided lang, or defaultLang, or null for default
+        const targetLang = currentLang || defaultLang || null;
+
         const [articlesData, categoriesData, tagsData] = await Promise.all([
           getArticles({
             per_page: 100,
             orderby: 'date',
             order: 'desc',
             article_categories: categoryId || undefined,
-            tags: tagId || undefined
+            tags: tagId || undefined,
+            lang: targetLang || undefined
           }),
           getArticleCategories(),
           getTags({ hide_empty: true, post_type: 'articles' })
         ]);
 
-        setArticles(articlesData);
+        // Filter articles by language to ensure only matching language is shown
+        const filteredArticles = articlesData.filter(article => {
+          if (targetLang === null) {
+            // Default language: include posts with null/undefined language
+            return article.language === null || article.language === undefined;
+          } else {
+            // Specific language: only include posts matching that language
+            return article.language === targetLang;
+          }
+        });
+
+        setArticles(filteredArticles);
         setCategories(categoriesData);
         setTags(tagsData);
       } catch (error) {
@@ -44,7 +71,7 @@ export default function ArticlesPage() {
       }
     }
     fetchData();
-  }, [searchParams]);
+  }, [searchParams, currentLang, defaultLang]);
 
   if (loading) {
     return (
@@ -80,7 +107,7 @@ export default function ArticlesPage() {
               <Sidebar
                 categories={categories}
                 tags={tags}
-                basePath="/articles"
+                basePath={currentLang ? `/${currentLang}/articles` : '/articles'}
               />
             </div>
 
@@ -89,7 +116,7 @@ export default function ArticlesPage() {
               {articles.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {articles.map((article) => (
-                    <ContentCard key={article.id} post={article} type="articles" />
+                    <ContentCard key={article.id} post={article} type="articles" lang={currentLang || null} defaultLang={defaultLang} />
                   ))}
                 </div>
               ) : (

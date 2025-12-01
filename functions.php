@@ -289,6 +289,83 @@ function gaal_register_custom_fields() {
             ),
         )
     );
+
+    // Add language information to REST API (Polylang integration)
+    // Only add if Polylang is active
+    // 
+    // Polylang Configuration Requirements:
+    // 1. Ensure Polylang plugin is installed and activated
+    // 2. In Polylang settings, configure URL structure to include language code in URL
+    //    (Settings > Languages > URL modifications: "The language is set from content")
+    // 3. In Polylang settings, mark custom post types as translatable:
+    //    - Settings > Languages > Synchronization: Enable for strategy_course, article, tool
+    // 4. Set default language (typically English) in Polylang settings
+    // 5. Add languages (e.g., Spanish/es) in Polylang settings
+    if (function_exists('pll_get_post_language')) {
+        register_rest_field(
+            array('post', 'page', 'strategy_course', 'article', 'tool'),
+            'language',
+            array(
+                'get_callback' => function($object) {
+                    $lang = pll_get_post_language($object['id'], 'slug');
+                    return $lang ? $lang : null;
+                },
+                'schema' => array(
+                    'description' => __('Language code (slug) for this post', 'kingdom-training'),
+                    'type' => 'string',
+                    'context' => array('view', 'edit'),
+                ),
+            )
+        );
+
+        // Add translations field (alternate language versions)
+        register_rest_field(
+            array('post', 'page', 'strategy_course', 'article', 'tool'),
+            'translations',
+            array(
+                'get_callback' => function($object) {
+                    $translations = pll_get_post_translations($object['id']);
+                    if (empty($translations)) {
+                        return array();
+                    }
+                    
+                    $translation_data = array();
+                    foreach ($translations as $lang_code => $translation_id) {
+                        // Skip the current post itself
+                        if ($translation_id == $object['id']) {
+                            continue;
+                        }
+                        
+                        $translation_post = get_post($translation_id);
+                        if ($translation_post && $translation_post->post_status === 'publish') {
+                            $translation_data[] = array(
+                                'id' => $translation_id,
+                                'slug' => $translation_post->post_name,
+                                'language' => $lang_code,
+                                'link' => get_permalink($translation_id),
+                            );
+                        }
+                    }
+                    
+                    return $translation_data;
+                },
+                'schema' => array(
+                    'description' => __('Array of alternate language versions of this post', 'kingdom-training'),
+                    'type' => 'array',
+                    'items' => array(
+                        'type' => 'object',
+                        'properties' => array(
+                            'id' => array('type' => 'integer'),
+                            'slug' => array('type' => 'string'),
+                            'language' => array('type' => 'string'),
+                            'link' => array('type' => 'string', 'format' => 'uri'),
+                        ),
+                    ),
+                    'context' => array('view', 'edit'),
+                ),
+            )
+        );
+    }
 }
 add_action('rest_api_init', 'gaal_register_custom_fields');
 
@@ -1289,5 +1366,219 @@ function kingdom_training_serve_frontend() {
 // Hook early to catch REST API requests before they're processed
 // Use a high priority to run before other template_redirect hooks
 add_action('template_redirect', 'kingdom_training_serve_frontend', 1);
+
+// ============================================================================
+// TRANSLATION SYSTEM FOR FRONTEND UI STRINGS
+// ============================================================================
+
+/**
+ * Register all UI strings for translation with Polylang
+ * These strings are used in the React frontend and can be translated
+ * via WordPress Admin > Languages > String translations
+ */
+function gaal_register_ui_strings() {
+    if (!function_exists('pll_register_string')) {
+        return; // Polylang not active
+    }
+
+    // Navigation Menu Strings
+    pll_register_string('nav_home', 'Home', 'Frontend UI');
+    pll_register_string('nav_articles', 'Articles', 'Frontend UI');
+    pll_register_string('nav_tools', 'Tools', 'Frontend UI');
+    pll_register_string('nav_strategy_course', 'Strategy Course', 'Frontend UI');
+    pll_register_string('nav_strategy_courses', 'Strategy Courses', 'Frontend UI');
+    pll_register_string('nav_newsletter', 'Newsletter', 'Frontend UI');
+    pll_register_string('nav_search', 'Search', 'Frontend UI');
+    pll_register_string('nav_login', 'Login', 'Frontend UI');
+    pll_register_string('nav_menu', 'Menu', 'Frontend UI');
+    pll_register_string('nav_about', 'About', 'Frontend UI');
+
+    // Common UI Strings
+    pll_register_string('ui_read_more', 'Learn more', 'Frontend UI');
+    pll_register_string('ui_view_all', 'View all', 'Frontend UI');
+    pll_register_string('ui_browse_all', 'Browse all', 'Frontend UI');
+    pll_register_string('ui_back_to', 'Back to', 'Frontend UI');
+    pll_register_string('ui_explore', 'Explore', 'Frontend UI');
+    pll_register_string('ui_read_articles', 'Read Articles', 'Frontend UI');
+    pll_register_string('ui_explore_tools', 'Explore Tools', 'Frontend UI');
+    pll_register_string('ui_select_language', 'Select Language', 'Frontend UI');
+    pll_register_string('ui_close', 'Close', 'Frontend UI');
+    pll_register_string('ui_loading', 'Loading...', 'Frontend UI');
+
+    // Page Headers and Titles
+    pll_register_string('page_latest_articles', 'Latest Articles', 'Frontend UI');
+    pll_register_string('page_featured_tools', 'Featured Tools', 'Frontend UI');
+    pll_register_string('page_key_information', 'Key Information About Media to Disciple Making Movements', 'Frontend UI');
+    pll_register_string('page_mvp_strategy_course', 'The MVP: Strategy Course', 'Frontend UI');
+    pll_register_string('page_start_strategy_course', 'Start Your Strategy Course', 'Frontend UI');
+    pll_register_string('page_step_curriculum', 'The {count}-Step Curriculum:', 'Frontend UI');
+
+    // Content Messages
+    pll_register_string('msg_no_articles', 'Articles will appear here once content is added to WordPress.', 'Frontend UI');
+    pll_register_string('msg_no_tools', 'Tools will appear here once content is added to WordPress.', 'Frontend UI');
+    pll_register_string('msg_no_content', 'No content found.', 'Frontend UI');
+    pll_register_string('msg_discover_supplementary', 'Discover supplementary tools and resources to enhance your M2DMM strategy development and practice.', 'Frontend UI');
+    pll_register_string('msg_discover_more', 'Discover more articles and resources to deepen your understanding and enhance your M2DMM practice.', 'Frontend UI');
+
+    // Footer Strings
+    pll_register_string('footer_quick_links', 'Quick Links', 'Frontend UI');
+    pll_register_string('footer_our_vision', 'Our Vision', 'Frontend UI');
+    pll_register_string('footer_subscribe', 'Subscribe to Newsletter', 'Frontend UI');
+    pll_register_string('footer_privacy_policy', 'Privacy Policy', 'Frontend UI');
+    pll_register_string('footer_all_rights', 'All rights reserved.', 'Frontend UI');
+
+    // Newsletter Strings
+    pll_register_string('newsletter_subscribe', 'Subscribe', 'Frontend UI');
+    pll_register_string('newsletter_email_placeholder', 'Enter your email', 'Frontend UI');
+    pll_register_string('newsletter_name_placeholder', 'Enter your name', 'Frontend UI');
+    pll_register_string('newsletter_success', 'Successfully subscribed!', 'Frontend UI');
+    pll_register_string('newsletter_error', 'Failed to subscribe. Please try again.', 'Frontend UI');
+
+    // Search Strings
+    pll_register_string('search_placeholder', 'Search...', 'Frontend UI');
+    pll_register_string('search_no_results', 'No results found', 'Frontend UI');
+    pll_register_string('search_results', 'Search Results', 'Frontend UI');
+
+    // Breadcrumb Strings
+    pll_register_string('breadcrumb_home', 'Home', 'Frontend UI');
+    pll_register_string('breadcrumb_articles', 'Articles', 'Frontend UI');
+    pll_register_string('breadcrumb_tools', 'Tools', 'Frontend UI');
+    pll_register_string('breadcrumb_strategy_courses', 'Strategy Courses', 'Frontend UI');
+
+    // Hero Section Strings
+    pll_register_string('hero_explore_resources', 'Explore Our Resources', 'Frontend UI');
+    pll_register_string('hero_about_us', 'About Us', 'Frontend UI');
+    pll_register_string('hero_description', 'Accelerate your disciple making with strategic use of media, advertising, and AI tools. Kingdom.Training is a resource for disciple makers to use media to accelerate Disciple Making Movements.', 'Frontend UI', true);
+
+    // Homepage Content Strings (longer text chunks)
+    pll_register_string('home_mvp_description', 'Our flagship course guides you through 10 core elements needed to craft a Media to Disciple Making Movements strategy for any context. Complete your plan in 6-7 hours.', 'Frontend UI', true);
+    pll_register_string('home_newsletter_description', 'Field driven tools and articles for disciple makers.', 'Frontend UI');
+    pll_register_string('home_heavenly_economy', 'We operate within what we call the "Heavenly Economy"—a principle that challenges the broken world\'s teaching that "the more you get, the more you should keep." Instead, we reflect God\'s generous nature by offering free training, hands-on coaching, and open-source tools like Disciple.Tools.', 'Frontend UI', true);
+    pll_register_string('home_mission_statement', 'Our heart beats with passion for the unreached and least-reached peoples of the world. Every course, article, and tool serves the ultimate vision of seeing Disciple Making Movements catalyzed among people groups where the name of Jesus has never been proclaimed.', 'Frontend UI', true);
+    pll_register_string('home_loading_steps', 'Loading course steps...', 'Frontend UI');
+}
+add_action('init', 'gaal_register_ui_strings');
+
+/**
+ * REST API endpoint for frontend translations
+ * Returns all registered UI strings translated to the specified language
+ * 
+ * Usage: GET /wp-json/gaal/v1/translations?lang=en
+ */
+function gaal_register_translations_api() {
+    register_rest_route('gaal/v1', '/translations', array(
+        'methods' => 'GET',
+        'callback' => function($request) {
+            if (!function_exists('pll_translate_string')) {
+                return new WP_Error('polylang_not_active', 'Polylang is not active', array('status' => 500));
+            }
+
+            $lang = $request->get_param('lang');
+            
+            // If no language specified, try to get current language
+            if (empty($lang) && function_exists('pll_current_language')) {
+                $lang = pll_current_language('slug');
+            }
+            
+            // If still no language, get default
+            if (empty($lang) && function_exists('pll_default_language')) {
+                $lang = pll_default_language('slug');
+            }
+
+            // Fallback to 'en' if still no language
+            if (empty($lang)) {
+                $lang = 'en';
+            }
+
+            // Get all registered strings and their translations
+            // Note: pll_translate_string requires the original English string
+            $strings = array(
+                // Navigation
+                'nav_home' => pll_translate_string('Home', $lang),
+                'nav_articles' => pll_translate_string('Articles', $lang),
+                'nav_tools' => pll_translate_string('Tools', $lang),
+                'nav_strategy_course' => pll_translate_string('Strategy Course', $lang),
+                'nav_strategy_courses' => pll_translate_string('Strategy Courses', $lang),
+                'nav_newsletter' => pll_translate_string('Newsletter', $lang),
+                'nav_search' => pll_translate_string('Search', $lang),
+                'nav_login' => pll_translate_string('Login', $lang),
+                'nav_menu' => pll_translate_string('Menu', $lang),
+                'nav_about' => pll_translate_string('About', $lang),
+
+                // Common UI
+                'ui_read_more' => pll_translate_string('Learn more', $lang),
+                'ui_view_all' => pll_translate_string('View all', $lang),
+                'ui_browse_all' => pll_translate_string('Browse all', $lang),
+                'ui_back_to' => pll_translate_string('Back to', $lang),
+                'ui_explore' => pll_translate_string('Explore', $lang),
+                'ui_read_articles' => pll_translate_string('Read Articles', $lang),
+                'ui_explore_tools' => pll_translate_string('Explore Tools', $lang),
+                'ui_select_language' => pll_translate_string('Select Language', $lang),
+                'ui_close' => pll_translate_string('Close', $lang),
+                'ui_loading' => pll_translate_string('Loading...', $lang),
+
+                // Page Headers
+                'page_latest_articles' => pll_translate_string('Latest Articles', $lang),
+                'page_featured_tools' => pll_translate_string('Featured Tools', $lang),
+                'page_key_information' => pll_translate_string('Key Information About Media to Disciple Making Movements', $lang),
+                'page_mvp_strategy_course' => pll_translate_string('The MVP: Strategy Course', $lang),
+                'page_start_strategy_course' => pll_translate_string('Start Your Strategy Course', $lang),
+                'page_step_curriculum' => pll_translate_string('The {count}-Step Curriculum:', $lang),
+
+                // Content Messages
+                'msg_no_articles' => pll_translate_string('Articles will appear here once content is added to WordPress.', $lang),
+                'msg_no_tools' => pll_translate_string('Tools will appear here once content is added to WordPress.', $lang),
+                'msg_no_content' => pll_translate_string('No content found.', $lang),
+                'msg_discover_supplementary' => pll_translate_string('Discover supplementary tools and resources to enhance your M2DMM strategy development and practice.', $lang),
+                'msg_discover_more' => pll_translate_string('Discover more articles and resources to deepen your understanding and enhance your M2DMM practice.', $lang),
+
+                // Footer
+                'footer_quick_links' => pll_translate_string('Quick Links', $lang),
+                'footer_our_vision' => pll_translate_string('Our Vision', $lang),
+                'footer_subscribe' => pll_translate_string('Subscribe to Newsletter', $lang),
+                'footer_privacy_policy' => pll_translate_string('Privacy Policy', $lang),
+                'footer_all_rights' => pll_translate_string('All rights reserved.', $lang),
+
+                // Newsletter
+                'newsletter_subscribe' => pll_translate_string('Subscribe', $lang),
+                'newsletter_email_placeholder' => pll_translate_string('Enter your email', $lang),
+                'newsletter_name_placeholder' => pll_translate_string('Enter your name', $lang),
+                'newsletter_success' => pll_translate_string('Successfully subscribed!', $lang),
+                'newsletter_error' => pll_translate_string('Failed to subscribe. Please try again.', $lang),
+
+                // Search
+                'search_placeholder' => pll_translate_string('Search...', $lang),
+                'search_no_results' => pll_translate_string('No results found', $lang),
+                'search_results' => pll_translate_string('Search Results', $lang),
+
+                // Breadcrumbs
+                'breadcrumb_home' => pll_translate_string('Home', $lang),
+                'breadcrumb_articles' => pll_translate_string('Articles', $lang),
+                'breadcrumb_tools' => pll_translate_string('Tools', $lang),
+                'breadcrumb_strategy_courses' => pll_translate_string('Strategy Courses', $lang),
+
+                // Hero
+                'hero_explore_resources' => pll_translate_string('Explore Our Resources', $lang),
+                'hero_about_us' => pll_translate_string('About Us', $lang),
+                'hero_description' => pll_translate_string('Accelerate your disciple making with strategic use of media, advertising, and AI tools. Kingdom.Training is a resource for disciple makers to use media to accelerate Disciple Making Movements.', $lang),
+
+                // Homepage Content (longer text chunks)
+                'home_mvp_description' => pll_translate_string('Our flagship course guides you through 10 core elements needed to craft a Media to Disciple Making Movements strategy for any context. Complete your plan in 6-7 hours.', $lang),
+                'home_newsletter_description' => pll_translate_string('Field driven tools and articles for disciple makers.', $lang),
+                'home_heavenly_economy' => pll_translate_string('We operate within what we call the "Heavenly Economy"—a principle that challenges the broken world\'s teaching that "the more you get, the more you should keep." Instead, we reflect God\'s generous nature by offering free training, hands-on coaching, and open-source tools like Disciple.Tools.', $lang),
+                'home_mission_statement' => pll_translate_string('Our heart beats with passion for the unreached and least-reached peoples of the world. Every course, article, and tool serves the ultimate vision of seeing Disciple Making Movements catalyzed among people groups where the name of Jesus has never been proclaimed.', $lang),
+                'home_loading_steps' => pll_translate_string('Loading course steps...', $lang),
+            );
+
+            return array(
+                'success' => true,
+                'language' => $lang,
+                'translations' => $strings,
+            );
+        },
+        'permission_callback' => '__return_true',
+    ));
+}
+add_action('rest_api_init', 'gaal_register_translations_api');
 
 

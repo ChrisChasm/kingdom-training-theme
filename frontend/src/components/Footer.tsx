@@ -6,8 +6,10 @@
 
 import { Link } from 'react-router-dom';
 import StructuredData from './StructuredData';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Footer() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   
   // Get the current site URL
@@ -81,31 +83,31 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer_quick_links')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/strategy-courses" className="text-sm hover:text-white transition-colors">
-                  Strategy Courses
+                  {t('nav_strategy_courses')}
                 </Link>
               </li>
               <li>
                 <Link to="/articles" className="text-sm hover:text-white transition-colors">
-                  Articles
+                  {t('nav_articles')}
                 </Link>
               </li>
               <li>
                 <Link to="/tools" className="text-sm hover:text-white transition-colors">
-                  Tools
+                  {t('nav_tools')}
                 </Link>
               </li>
               <li>
                 <a href="https://ai.kingdom.training/about/" className="text-sm hover:text-white transition-colors">
-                  About
+                  {t('nav_about')}
                 </a>
               </li>
               <li>
                 <Link to="/newsletter" className="text-sm hover:text-white transition-colors">
-                  Newsletter
+                  {t('nav_newsletter')}
                 </Link>
               </li>
             </ul>
@@ -113,7 +115,7 @@ export default function Footer() {
 
           {/* Mission Scripture */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Our Vision</h3>
+            <h3 className="text-white font-semibold mb-4">{t('footer_our_vision')}</h3>
             <blockquote className="text-sm text-secondary-200 italic leading-relaxed border-l-2 border-primary-500 pl-4">
               &ldquo;Of the sons of Issachar, men who understood the times, with knowledge of what 
               Israel should do.&rdquo;
@@ -132,7 +134,7 @@ export default function Footer() {
               to="/newsletter"
               className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-lg transition-colors"
             >
-              Subscribe to Newsletter
+              {t('footer_subscribe')}
             </Link>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-4">
@@ -140,18 +142,18 @@ export default function Footer() {
               href="https://ai.kingdom.training/about/" 
               className="text-sm text-secondary-200 hover:text-white transition-colors"
             >
-              About
+              {t('nav_about')}
             </a>
             <span className="hidden md:inline text-secondary-600">|</span>
             <Link 
               to="/privacy" 
               className="text-sm text-secondary-200 hover:text-white transition-colors"
             >
-              Privacy Policy
+              {t('footer_privacy_policy')}
             </Link>
           </div>
           <p className="text-sm text-secondary-200 text-center">
-            &copy; {currentYear} Kingdom.Training. All rights reserved.
+            &copy; {currentYear} Kingdom.Training. {t('footer_all_rights')}
           </p>
         </div>
       </div>

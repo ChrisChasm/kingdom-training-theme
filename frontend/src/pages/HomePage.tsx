@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import ContentCard from '@/components/ContentCard';
 import NewsletterCTA from '@/components/NewsletterCTA';
@@ -7,28 +8,59 @@ import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import KeyInfoSection from '@/components/KeyInfoSection';
 import ArticleTitlesBackground from '@/components/ArticleTitlesBackground';
-import { getArticles, getTools, getOrderedCourseSteps, WordPressPost } from '@/lib/wordpress';
+import { getArticles, getTools, getOrderedCourseSteps, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Link } from 'react-router-dom';
+import { parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
 
 export default function HomePage() {
+  const { lang } = useParams<{ lang?: string }>();
+  const location = useLocation();
+  const { t, tWithReplace } = useTranslation();
   const [articles, setArticles] = useState<WordPressPost[]>([]);
   const [backgroundArticles, setBackgroundArticles] = useState<WordPressPost[]>([]);
   const [tools, setTools] = useState<WordPressPost[]>([]);
   const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+
+  // Get current language from URL params or path
+  const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+
+  // Fetch default language
+  useEffect(() => {
+    getDefaultLanguage().then(setDefaultLang);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
       try {
+        // Determine target language: use provided lang, or defaultLang, or null for default
+        const targetLang = currentLang || defaultLang || null;
+
         const [articlesData, backgroundArticlesData, toolsData, orderedSteps] = await Promise.all([
-          getArticles({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
-          getArticles({ per_page: 15, orderby: 'date', order: 'desc' }).catch(() => []),
-          getTools({ per_page: 3, orderby: 'date', order: 'desc' }).catch(() => []),
-          getOrderedCourseSteps().catch(() => []),
+          getArticles({ per_page: 3, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
+          getArticles({ per_page: 15, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
+          getTools({ per_page: 3, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
+          getOrderedCourseSteps(currentLang, defaultLang).catch(() => []),
         ]);
-        setArticles(articlesData);
-        setBackgroundArticles(backgroundArticlesData);
-        setTools(toolsData);
+
+        // Filter articles and tools by language
+        const filterByLanguage = <T extends { language?: string | null }>(items: T[]): T[] => {
+          return items.filter(item => {
+            if (targetLang === null) {
+              // Default language: include posts with null/undefined language
+              return item.language === null || item.language === undefined;
+            } else {
+              // Specific language: only include posts matching that language
+              return item.language === targetLang;
+            }
+          });
+        };
+
+        setArticles(filterByLanguage(articlesData));
+        setBackgroundArticles(filterByLanguage(backgroundArticlesData));
+        setTools(filterByLanguage(toolsData));
         setCourseSteps(orderedSteps);
       } catch (error) {
         console.error('Error fetching homepage data:', error);
@@ -37,7 +69,7 @@ export default function HomePage() {
       }
     }
     fetchData();
-  }, []);
+  }, [currentLang, defaultLang]);
 
   if (loading) {
     return (
@@ -71,9 +103,9 @@ export default function HomePage() {
       <Hero
         subtitle="Media, Advertising, and AI"
         title="Innovate → Accelerate → Make Disciples"
-        description="Accelerate your disciple making with strategic use of media, advertising, and AI tools. Kingdom.Training is a resource for disciple makers to use media to accelerate Disciple Making Movements."
+        description={t('hero_description')}
         ctaText="Start the MVP Course"
-        ctaLink="/strategy-courses"
+        ctaLink={buildLanguageUrl('/strategy-courses', currentLang || null, defaultLang)}
       />
 
       {/* Newsletter CTA Section */}
@@ -83,7 +115,7 @@ export default function HomePage() {
           <NewsletterCTA
             variant="banner"
             title="Get the newest insights, techniques, and strategies."
-            description="Field driven tools and articles for disciple makers."
+            description={t('home_newsletter_description')}
             showEmailInput={false}
             className="my-0"
             whiteBackground={true}
@@ -98,15 +130,14 @@ export default function HomePage() {
         <div className="container-custom relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              The MVP: Strategy Course
+              {t('page_mvp_strategy_course')}
             </h2>
             <p className="text-xl text-secondary-100 mb-8 max-w-2xl mx-auto">
-              Our flagship course guides you through 10 core elements needed to craft a Media to Disciple
-              Making Movements strategy for any context. Complete your plan in 6-7 hours.
+              {t('home_mvp_description')}
             </p>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 text-left">
               <h3 className="text-xl font-semibold mb-4 text-accent-500">
-                The {courseSteps.length > 0 ? courseSteps.length : '10'}-Step Curriculum:
+                {tWithReplace('page_step_curriculum', { count: courseSteps.length > 0 ? courseSteps.length : 10 })}
               </h3>
               {courseSteps.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -115,7 +146,7 @@ export default function HomePage() {
                     {courseSteps.slice(0, Math.ceil(courseSteps.length / 2)).map((step, index) => (
                       <Link
                         key={step.id}
-                        to={`/strategy-courses/${step.slug}`}
+                        to={buildLanguageUrl(`/strategy-courses/${step.slug}`, currentLang || null, defaultLang)}
                         className="hover:text-accent-400 transition-colors"
                       >
                         {step.steps || index + 1}. {step.title.rendered}
@@ -129,7 +160,7 @@ export default function HomePage() {
                       return (
                         <Link
                           key={step.id}
-                          to={`/strategy-courses/${step.slug}`}
+                          to={buildLanguageUrl(`/strategy-courses/${step.slug}`, currentLang || null, defaultLang)}
                           className="hover:text-accent-400 transition-colors"
                         >
                           {stepNumber}. {step.title.rendered}
@@ -139,11 +170,11 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-secondary-200">Loading course steps...</p>
+                <p className="text-secondary-200">{t('home_loading_steps')}</p>
               )}
             </div>
             <Link
-              to="/strategy-courses"
+              to={buildLanguageUrl('/strategy-courses', currentLang || null, defaultLang)}
               className="inline-flex items-center justify-center px-8 py-4 bg-accent-600 hover:bg-accent-500 text-secondary-900 font-semibold rounded-lg transition-colors duration-200 text-lg"
             >
               Enroll in The MVP Course
@@ -156,28 +187,28 @@ export default function HomePage() {
       <section className="py-16 bg-background-50">
         <div className="container-custom">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">Latest Articles</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('page_latest_articles')}</h2>
             <Link
-              to="/articles"
+              to={buildLanguageUrl('/articles', currentLang || null, defaultLang)}
               className="text-primary-500 hover:text-primary-600 font-medium"
             >
-              View all →
+              {t('ui_view_all')} →
             </Link>
           </div>
           {articles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {articles.map((article) => (
-                <ContentCard key={article.id} post={article} type="articles" />
+                <ContentCard key={article.id} post={article} type="articles" lang={currentLang || null} defaultLang={defaultLang} />
               ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-white rounded-lg">
-              <p className="text-gray-600 mb-4">Articles will appear here once content is added to WordPress.</p>
+              <p className="text-gray-600 mb-4">{t('msg_no_articles')}</p>
               <Link
-                to="/articles"
+                to={buildLanguageUrl('/articles', currentLang || null, defaultLang)}
                 className="text-primary-500 hover:text-primary-600 font-medium"
               >
-                Browse all articles →
+                {t('ui_browse_all')} {t('nav_articles').toLowerCase()} →
               </Link>
             </div>
           )}
@@ -188,28 +219,28 @@ export default function HomePage() {
       <section className="py-16 bg-white">
         <div className="container-custom">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-800">Featured Tools</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('page_featured_tools')}</h2>
             <Link
-              to="/tools"
+              to={buildLanguageUrl('/tools', currentLang || null, defaultLang)}
               className="text-primary-500 hover:text-primary-600 font-medium"
             >
-              View all →
+              {t('ui_view_all')} →
             </Link>
           </div>
           {tools.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {tools.map((tool) => (
-                <ContentCard key={tool.id} post={tool} type="tools" />
+                <ContentCard key={tool.id} post={tool} type="tools" lang={currentLang || null} defaultLang={defaultLang} />
               ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-background-50 rounded-lg">
-              <p className="text-gray-600 mb-4">Tools will appear here once content is added to WordPress.</p>
+              <p className="text-gray-600 mb-4">{t('msg_no_tools')}</p>
               <Link
-                to="/tools"
+                to={buildLanguageUrl('/tools', currentLang || null, defaultLang)}
                 className="text-primary-500 hover:text-primary-600 font-medium"
               >
-                Browse all tools →
+                {t('ui_browse_all')} {t('nav_tools').toLowerCase()} →
               </Link>
             </div>
           )}
@@ -242,34 +273,29 @@ export default function HomePage() {
               The Heavenly Economy
             </h2>
             <p className="text-lg text-primary-100 leading-relaxed mb-6">
-              We operate within what we call the &ldquo;Heavenly Economy&rdquo;—a principle that challenges
-              the broken world&apos;s teaching that &ldquo;the more you get, the more you should keep.&rdquo;
-              Instead, we reflect God&apos;s generous nature by offering free training, hands-on coaching,
-              and open-source tools like Disciple.Tools.
+              {t('home_heavenly_economy')}
             </p>
             <p className="text-lg text-primary-100 leading-relaxed mb-8">
-              Our heart beats with passion for the unreached and least-reached peoples of the world.
-              Every course, article, and tool serves the ultimate vision of seeing Disciple Making Movements
-              catalyzed among people groups where the name of Jesus has never been proclaimed.
+              {t('home_mission_statement')}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                to="/strategy-courses"
+                to={buildLanguageUrl('/strategy-courses', currentLang || null, defaultLang)}
                 className="inline-flex items-center justify-center px-8 py-4 bg-accent-600 hover:bg-accent-500 text-secondary-900 font-semibold rounded-lg transition-colors duration-200"
               >
-                Start Your Strategy Course
+                {t('page_start_strategy_course')}
               </Link>
               <Link
-                to="/articles"
+                to={buildLanguageUrl('/articles', currentLang || null, defaultLang)}
                 className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 hover:border-white text-white font-semibold rounded-lg transition-colors duration-200"
               >
-                Read Articles
+                {t('ui_read_articles')}
               </Link>
               <Link
-                to="/tools"
+                to={buildLanguageUrl('/tools', currentLang || null, defaultLang)}
                 className="inline-flex items-center justify-center px-8 py-4 border-2 border-white/30 hover:border-white text-white font-semibold rounded-lg transition-colors duration-200"
               >
-                Explore Tools
+                {t('ui_explore_tools')}
               </Link>
             </div>
           </div>
