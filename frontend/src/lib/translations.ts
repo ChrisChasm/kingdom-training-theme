@@ -295,7 +295,12 @@ export async function fetchTranslations(lang?: string | null): Promise<Translati
     const data = await response.json();
     
     if (data.success && data.translations) {
-      translationsCache = data.translations as Translations;
+      // Merge API translations with defaults to ensure all keys are present
+      const defaults = getDefaultTranslations();
+      translationsCache = {
+        ...defaults,
+        ...data.translations,
+      } as Translations;
       currentLanguage = lang || null;
       return translationsCache;
     }
@@ -312,7 +317,7 @@ export async function fetchTranslations(lang?: string | null): Promise<Translati
 /**
  * Get default English translations (fallback)
  */
-function getDefaultTranslations(): Translations {
+export function getDefaultTranslations(): Translations {
   return {
     nav_home: 'Home',
     nav_articles: 'Articles',

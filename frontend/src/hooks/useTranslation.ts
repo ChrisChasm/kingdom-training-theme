@@ -3,8 +3,8 @@
  * Provides access to translated UI strings
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { fetchTranslations, Translations } from '@/lib/translations';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { fetchTranslations, Translations, getDefaultTranslations } from '@/lib/translations';
 import { parseLanguageFromPath } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 
@@ -51,13 +51,24 @@ export function useTranslation() {
     };
   }, [currentLang]);
 
-  // Translation function with fallback
+  // Get default translations for fallback
+  const defaultTranslations = useMemo(() => getDefaultTranslations(), []);
+
+  // Translation function with fallback to default English translations
   const t = useCallback((key: keyof Translations, fallback?: string): string => {
-    if (translations && translations[key]) {
+    // First check if we have a translation from the API
+    if (translations && translations[key] && translations[key].trim() !== '') {
       return translations[key];
     }
+    
+    // Fall back to default English translation
+    if (defaultTranslations[key]) {
+      return defaultTranslations[key];
+    }
+    
+    // Last resort: use provided fallback or return the key
     return fallback || key;
-  }, [translations]);
+  }, [translations, defaultTranslations]);
 
   // Helper function to replace placeholders (e.g., {count})
   const tWithReplace = useCallback((key: keyof Translations, replacements: Record<string, string | number>): string => {
