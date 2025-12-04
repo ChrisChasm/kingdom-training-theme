@@ -117,6 +117,7 @@ export default function ArticleDetailPage() {
         <FeaturedImage
           src={article.featured_image_url}
           alt={article.title.rendered}
+          imageSizes={article.featured_image_sizes}
         />
       )}
 

@@ -3,12 +3,24 @@
  * Displays featured images with proper aspect ratio handling and blurred background fill
  */
 
+import { generateImageSrcset } from '@/lib/utils';
+
 interface FeaturedImageProps {
   src: string;
   alt: string;
+  imageSizes?: {
+    [size: string]: {
+      url: string;
+      width: number;
+      height: number;
+    };
+  };
 }
 
-export default function FeaturedImage({ src, alt }: FeaturedImageProps) {
+export default function FeaturedImage({ src, alt, imageSizes }: FeaturedImageProps) {
+  // Generate responsive image srcset if available
+  const imageSrcset = generateImageSrcset(imageSizes);
+
   return (
     <div className="w-full h-48 md:h-96 bg-gray-200 relative overflow-hidden">
       {/* Blurred background image */}
@@ -32,6 +44,10 @@ export default function FeaturedImage({ src, alt }: FeaturedImageProps) {
           loading="eager"
           decoding="async"
           fetchPriority="high"
+          width="1200"
+          height="675"
+          srcSet={imageSrcset?.srcset}
+          sizes={imageSrcset?.sizes}
           className="max-w-full max-h-full object-contain"
         />
       </div>

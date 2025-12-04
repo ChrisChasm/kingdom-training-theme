@@ -360,6 +360,36 @@ function gaal_register_custom_fields() {
         )
     );
 
+    // Add featured image sizes to REST API for responsive images
+    register_rest_field(
+        array('post', 'page', 'strategy_course', 'article', 'tool'),
+        'featured_image_sizes',
+        array(
+            'get_callback' => function($object) {
+                if ($object['featured_media']) {
+                    $sizes = array();
+                    $image_sizes = array('thumbnail', 'medium', 'medium_large', 'large', 'full');
+                    foreach ($image_sizes as $size) {
+                        $image = wp_get_attachment_image_src($object['featured_media'], $size);
+                        if ($image) {
+                            $sizes[$size] = array(
+                                'url' => $image[0],
+                                'width' => $image[1],
+                                'height' => $image[2],
+                            );
+                        }
+                    }
+                    return !empty($sizes) ? $sizes : null;
+                }
+                return null;
+            },
+            'schema' => array(
+                'description' => __('Featured image sizes for responsive images', 'kingdom-training'),
+                'type' => 'object',
+            ),
+        )
+    );
+
     // Add author information to REST API
     register_rest_field(
         array('post', 'article', 'strategy_course', 'tool'),

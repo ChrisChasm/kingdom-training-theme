@@ -64,6 +64,13 @@ export interface WordPressPost {
   author: number;
   featured_media: number;
   featured_image_url?: string;
+  featured_image_sizes?: {
+    [size: string]: {
+      url: string;
+      width: number;
+      height: number;
+    };
+  };
   author_info?: {
     name: string;
     avatar: string;

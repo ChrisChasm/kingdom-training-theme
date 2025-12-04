@@ -84,6 +84,8 @@ export default function LoginPage() {
                     alt={user.name}
                     loading="lazy"
                     decoding="async"
+                    width="80"
+                    height="80"
                     className="w-20 h-20 rounded-full mx-auto mb-4"
                   />
                 )}

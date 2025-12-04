@@ -153,6 +153,8 @@ export default function LanguageSelector() {
                         alt={lang.name}
                         loading="lazy"
                         decoding="async"
+                        width="20"
+                        height="16"
                         className="w-5 h-4 object-cover rounded"
                       />
                     )}
@@ -226,6 +228,8 @@ export default function LanguageSelector() {
                           alt={lang.name}
                           loading="lazy"
                           decoding="async"
+                          width="24"
+                          height="20"
                           className="w-6 h-5 object-cover rounded"
                         />
                       )}

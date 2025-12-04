@@ -6,7 +6,7 @@
 import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { WordPressPost } from '@/lib/wordpress';
-import { formatDate, stripHtml, truncate, buildLanguageUrl } from '@/lib/utils';
+import { formatDate, stripHtml, truncate, buildLanguageUrl, generateImageSrcset } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface ContentCardProps {
@@ -29,6 +29,11 @@ function ContentCard({ post, type, lang, defaultLang }: ContentCardProps) {
     return buildLanguageUrl(basePath, lang || null, defaultLang || null);
   }, [type, post.slug, lang, defaultLang]);
 
+  // Generate responsive image srcset if available
+  const imageSrcset = useMemo(() => {
+    return generateImageSrcset(post.featured_image_sizes);
+  }, [post.featured_image_sizes]);
+
   return (
     <Link to={url} className="card group">
       {/* Featured Image */}
@@ -39,6 +44,10 @@ function ContentCard({ post, type, lang, defaultLang }: ContentCardProps) {
             alt={post.title.rendered}
             loading="lazy"
             decoding="async"
+            width="800"
+            height="450"
+            srcSet={imageSrcset?.srcset}
+            sizes={imageSrcset?.sizes}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>

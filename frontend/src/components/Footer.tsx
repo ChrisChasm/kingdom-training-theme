@@ -64,7 +64,7 @@ export default function Footer() {
         }}
       />
       
-      <footer className="bg-secondary-900 text-secondary-100">
+      <footer className="bg-secondary-900 text-secondary-100 min-h-[400px]">
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand & Mission */}

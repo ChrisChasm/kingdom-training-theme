@@ -117,6 +117,7 @@ export default function ToolDetailPage() {
         <FeaturedImage
           src={tool.featured_image_url}
           alt={tool.title.rendered}
+          imageSizes={tool.featured_image_sizes}
         />
       )}
 

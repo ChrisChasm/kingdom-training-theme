@@ -17,18 +17,37 @@ function cleanDirectory(dir) {
       // Use fs.rmSync with recursive option (Node.js 14.14.0+)
       fs.rmSync(dir, { recursive: true, force: true });
     } catch (error) {
-      // Fallback for older Node.js versions
-      console.warn('fs.rmSync not available, using fallback method');
+      // Fallback for older Node.js versions - recursively delete contents
+      console.warn('fs.rmSync failed, using fallback method');
       if (fs.existsSync(dir)) {
-        fs.readdirSync(dir).forEach(file => {
-          const curPath = path.join(dir, file);
-          if (fs.lstatSync(curPath).isDirectory()) {
-            fs.rmSync(curPath, { recursive: true, force: true });
+        // Recursive function to delete directory contents
+        function deleteRecursive(itemPath) {
+          const stat = fs.lstatSync(itemPath);
+          if (stat.isDirectory()) {
+            // Delete directory contents first
+            fs.readdirSync(itemPath).forEach(child => {
+              deleteRecursive(path.join(itemPath, child));
+            });
+            // Then remove the directory itself
+            fs.rmdirSync(itemPath);
           } else {
-            fs.unlinkSync(curPath);
+            // Delete file
+            fs.unlinkSync(itemPath);
           }
+        }
+        
+        // Delete all contents of the directory
+        fs.readdirSync(dir).forEach(file => {
+          deleteRecursive(path.join(dir, file));
         });
-        fs.rmdirSync(dir);
+        
+        // Remove the directory itself if it's empty
+        try {
+          fs.rmdirSync(dir);
+        } catch (e) {
+          // Directory might not be empty if there are hidden files, try to remove anyway
+          // This is fine - we'll recreate it
+        }
       }
     }
   }

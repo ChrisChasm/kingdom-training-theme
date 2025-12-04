@@ -161,6 +161,7 @@ export default function StrategyCourseDetailPage() {
         <FeaturedImage
           src={course.featured_image_url}
           alt={course.title.rendered}
+          imageSizes={course.featured_image_sizes}
         />
       )}
 

@@ -73,6 +73,8 @@ export default function Header() {
               loading="eager"
               decoding="async"
               fetchPriority="high"
+              width="200"
+              height="40"
               className="h-10 w-auto"
             />
           </Link>

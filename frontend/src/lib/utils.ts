@@ -299,3 +299,47 @@ export function processImageWidths(html: string): string {
   return tempDiv.innerHTML;
 }
 
+/**
+ * Generate srcset and sizes attributes for responsive images
+ * @param imageSizes Object with image sizes from WordPress REST API
+ * @returns Object with srcset string and sizes string
+ */
+export function generateImageSrcset(
+  imageSizes?: {
+    [size: string]: {
+      url: string;
+      width: number;
+      height: number;
+    };
+  }
+): { srcset: string; sizes: string } | null {
+  if (!imageSizes || Object.keys(imageSizes).length === 0) {
+    return null;
+  }
+
+  // Order sizes by width (smallest to largest)
+  const sortedSizes = Object.entries(imageSizes)
+    .filter(([size]) => size !== 'full') // Exclude 'full' from srcset
+    .map(([size, data]) => ({
+      size,
+      ...data,
+    }))
+    .sort((a, b) => a.width - b.width);
+
+  if (sortedSizes.length === 0) {
+    return null;
+  }
+
+  // Generate srcset: "url1 width1w, url2 width2w, ..."
+  const srcset = sortedSizes
+    .map(({ url, width }) => `${url} ${width}w`)
+    .join(', ');
+
+  // Generate sizes attribute for responsive images
+  // Default: use largest available size up to 1200px, then full width
+  const maxWidth = sortedSizes[sortedSizes.length - 1].width;
+  const sizes = `(max-width: 768px) 100vw, (max-width: 1200px) ${Math.min(maxWidth, 1200)}px, ${maxWidth}px`;
+
+  return { srcset, sizes };
+}
+
