@@ -1538,13 +1538,30 @@ function kingdom_training_serve_frontend() {
         
         // Replace absolute asset paths with theme-relative paths
         // Handle href="/assets/..." and src="/assets/..." (most common case)
-        $content = preg_replace('/(href|src)=["\']\/(assets\/[^"\']+)["\']/', '$1="' . $theme_uri . '/$2"', $content);
+        // More robust regex that handles optional whitespace and both quote types
+        // This pattern matches: (href|src) optional whitespace = optional whitespace quote /assets/... quote
+        $content = preg_replace(
+            '/(href|src)\s*=\s*["\']\/(assets\/[^"\']+)["\']/i',
+            '$1="' . $theme_uri . '/$2"',
+            $content
+        );
         
         // Handle other files in dist directory (like /kt-logo-header.webp, /vite.svg, /robots.txt, etc.)
         // Only replace if the file exists in the dist directory
+        // Skip assets/ paths as they're already handled above
         $content = preg_replace_callback(
-            '/(href|src)=["\']\/([^"\']+\.[a-zA-Z0-9]+)["\']/',
+            '/(href|src)\s*=\s*["\']\/([^"\']+\.[a-zA-Z0-9]+)["\']/i',
             function($matches) use ($dist_dir, $theme_uri) {
+                // Skip if already contains theme path (avoid double replacement)
+                if (strpos($matches[0], $theme_uri) !== false) {
+                    return $matches[0];
+                }
+                
+                // Skip assets/ paths as they're handled by the first regex
+                if (strpos($matches[2], 'assets/') === 0) {
+                    return $matches[0];
+                }
+                
                 $file_path = $dist_dir . '/' . $matches[2];
                 // Only replace if file exists in dist directory and is not a WordPress path
                 if (file_exists($file_path) && strpos($matches[2], 'wp-') !== 0 && strpos($matches[2], 'wp/') !== 0) {
