@@ -1517,50 +1517,17 @@ function kingdom_training_serve_frontend() {
         // Get theme URI for asset paths
         $theme_uri = get_template_directory_uri() . '/dist';
         
-        // Add preload hints for critical resources (improves FCP/LCP)
-        $preload_hints = '';
-        
-        // Preload the main CSS file (critical for rendering)
-        if (preg_match('/href="([^"]*main[^"]*\.css)"/', $content, $css_match)) {
-            $css_path = str_replace('/', $theme_uri . '/', $css_match[1]);
-            $preload_hints .= '<link rel="preload" href="' . $css_path . '" as="style">' . "\n    ";
-        }
-        
-        // Preload Google Fonts connection
-        $preload_hints .= '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n    ";
-        $preload_hints .= '<link rel="dns-prefetch" href="https://fonts.googleapis.com">' . "\n    ";
-        
-        // Preload WordPress API connection
-        $preload_hints .= '<link rel="preconnect" href="' . esc_url(home_url()) . '">' . "\n    ";
-        
-        // Insert preload hints after charset meta tag
-        // Handle both self-closing and non-self-closing meta tags
-        $content = preg_replace(
-            '/<meta\s+charset=["\']UTF-8["\']\s*\/?>/i',
-            '<meta charset="UTF-8">' . "\n    " . $preload_hints,
-            $content,
-            1
-        );
-        
-        // Replace absolute asset paths with theme-relative paths
+        // Replace absolute asset paths with theme-relative paths FIRST
         // Handle href="/assets/..." and src="/assets/..." (most common case)
-        // More robust regex that handles optional whitespace and both quote types
-        // This pattern matches: (href|src) optional whitespace = optional whitespace quote /assets/... quote
-        $content = preg_replace(
-            '/(href|src)\s*=\s*["\']\/(assets\/[^"\']+)["\']/i',
-            '$1="' . $theme_uri . '/$2"',
-            $content
-        );
+        $content = preg_replace('/(href|src)=["\']\/(assets\/[^"\']+)["\']/', '$1="' . $theme_uri . '/$2"', $content);
         
         // Handle other files in dist directory (like /kt-logo-header.webp, /vite.svg, /robots.txt, etc.)
-        // This also catches any assets/ paths that weren't matched by the first regex (edge cases)
         // Only replace if the file exists in the dist directory
         $content = preg_replace_callback(
-            '/(href|src)\s*=\s*["\']\/([^"\']+\.[a-zA-Z0-9]+)["\']/i',
+            '/(href|src)=["\']\/([^"\']+\.[a-zA-Z0-9]+)["\']/',
             function($matches) use ($dist_dir, $theme_uri) {
-                // Skip if already contains theme path (avoid double replacement)
-                // This handles cases where the first regex already replaced the path
-                if (strpos($matches[0], $theme_uri) !== false) {
+                // Skip assets/ paths as they're already handled above
+                if (strpos($matches[2], 'assets/') === 0) {
                     return $matches[0];
                 }
                 
@@ -1573,6 +1540,26 @@ function kingdom_training_serve_frontend() {
             },
             $content
         );
+        
+        // Add preload hints for critical resources AFTER path replacement (improves FCP/LCP)
+        $preload_hints = '';
+        
+        // Preload the main CSS file (critical for rendering) - now using already-replaced paths
+        if (preg_match('/href="([^"]*main[^"]*\.css)"/', $content, $css_match)) {
+            // The path is already replaced, so use it directly
+            $preload_hints .= '<link rel="preload" href="' . esc_attr($css_match[1]) . '" as="style">' . "\n    ";
+        }
+        
+        // Preload Google Fonts connection
+        $preload_hints .= '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n    ";
+        $preload_hints .= '<link rel="dns-prefetch" href="https://fonts.googleapis.com">' . "\n    ";
+        
+        // Preload WordPress API connection
+        $preload_hints .= '<link rel="preconnect" href="' . esc_url(home_url()) . '">' . "\n    ";
+        
+        // Insert preload hints after charset meta tag
+        $content = str_replace('<meta charset="UTF-8" />', '<meta charset="UTF-8" />' . "\n    " . $preload_hints, $content);
+        $content = str_replace('<meta charset="UTF-8">', '<meta charset="UTF-8">' . "\n    " . $preload_hints, $content);
         
         echo $content;
         exit;
