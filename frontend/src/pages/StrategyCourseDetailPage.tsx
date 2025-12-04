@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDefaultLanguage } from '@/contexts/LanguageContext';
-import { markStepCompleted, stripHtml, parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
+import { markStepCompleted, stripHtml, parseLanguageFromPath, buildLanguageUrl, processImageWidths } from '@/lib/utils';
 import { useCourse, useCourses, useOrderedCourseSteps, getAdditionalResources } from '@/hooks/useCourses';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
@@ -109,6 +109,9 @@ export default function StrategyCourseDetailPage() {
     : stripHtml(course.content.rendered).substring(0, 160);
   const courseKeywords = `M2DMM strategy course, ${courseTitle}, MVP course step ${course.steps || ''}, media to movements, disciple making strategy, ${courseTitle.toLowerCase()}`;
   
+  // Process content to respect image width attributes
+  const processedContent = useMemo(() => processImageWidths(course.content.rendered), [course.content.rendered]);
+  
   const siteUrl = typeof window !== 'undefined' 
     ? window.location.origin 
     : 'https://ai.kingdom.training';
@@ -189,7 +192,7 @@ export default function StrategyCourseDetailPage() {
 
           <div 
             className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-p:my-6 prose-strong:text-gray-900 prose-strong:font-bold prose-a:text-primary-500 prose-a:no-underline hover:prose-a:underline prose-ul:my-6 prose-ol:my-6 prose-li:my-2"
-            dangerouslySetInnerHTML={{ __html: course.content.rendered }}
+            dangerouslySetInnerHTML={{ __html: processedContent }}
           />
 
           {/* Navigation Buttons - Only show if this course is part of the ordered steps */}

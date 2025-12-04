@@ -155,6 +155,9 @@
 
 .prose img {
   @apply my-8 rounded-lg;
+  /* Respect inline styles (set by processImageWidths) while maintaining responsiveness */
+  height: auto;
+  max-width: 100%;
 }
 
 /* Hide date and byline on article and tool detail pages */

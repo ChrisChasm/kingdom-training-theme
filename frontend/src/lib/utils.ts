@@ -266,3 +266,36 @@ export function switchLanguageInUrl(newLang: string | null, defaultLang: string 
   return buildLanguageUrl(path, newLang, defaultLang);
 }
 
+/**
+ * Process HTML content to respect image width attributes
+ * Converts width attributes on images to inline styles so they're respected by CSS
+ * @param html - HTML content string
+ * @returns Processed HTML with width attributes converted to inline styles
+ */
+export function processImageWidths(html: string): string {
+  if (typeof document === 'undefined') {
+    // Server-side rendering - return as-is, will be processed on client
+    return html;
+  }
+
+  // Create a temporary DOM element to parse and manipulate HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+
+  // Find all images with width attributes
+  const images = tempDiv.querySelectorAll('img[width]');
+  
+  images.forEach((img) => {
+    const widthAttr = img.getAttribute('width');
+    if (widthAttr) {
+      // Convert width attribute to inline style
+      // This ensures CSS respects the width while still allowing max-width: 100% for responsiveness
+      const widthValue = widthAttr.includes('px') ? widthAttr : `${widthAttr}px`;
+      const currentStyle = img.getAttribute('style') || '';
+      img.setAttribute('style', `${currentStyle ? currentStyle + '; ' : ''}width: ${widthValue}; max-width: 100%; height: auto;`.trim());
+    }
+  });
+
+  return tempDiv.innerHTML;
+}
+
