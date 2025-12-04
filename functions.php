@@ -1534,7 +1534,13 @@ function kingdom_training_serve_frontend() {
         $preload_hints .= '<link rel="preconnect" href="' . esc_url(home_url()) . '">' . "\n    ";
         
         // Insert preload hints after charset meta tag
-        $content = str_replace('<meta charset="UTF-8" />', '<meta charset="UTF-8" />' . "\n    " . $preload_hints, $content);
+        // Handle both self-closing and non-self-closing meta tags
+        $content = preg_replace(
+            '/<meta\s+charset=["\']UTF-8["\']\s*\/?>/i',
+            '<meta charset="UTF-8">' . "\n    " . $preload_hints,
+            $content,
+            1
+        );
         
         // Replace absolute asset paths with theme-relative paths
         // Handle href="/assets/..." and src="/assets/..." (most common case)
@@ -1547,18 +1553,14 @@ function kingdom_training_serve_frontend() {
         );
         
         // Handle other files in dist directory (like /kt-logo-header.webp, /vite.svg, /robots.txt, etc.)
+        // This also catches any assets/ paths that weren't matched by the first regex (edge cases)
         // Only replace if the file exists in the dist directory
-        // Skip assets/ paths as they're already handled above
         $content = preg_replace_callback(
             '/(href|src)\s*=\s*["\']\/([^"\']+\.[a-zA-Z0-9]+)["\']/i',
             function($matches) use ($dist_dir, $theme_uri) {
                 // Skip if already contains theme path (avoid double replacement)
+                // This handles cases where the first regex already replaced the path
                 if (strpos($matches[0], $theme_uri) !== false) {
-                    return $matches[0];
-                }
-                
-                // Skip assets/ paths as they're handled by the first regex
-                if (strpos($matches[2], 'assets/') === 0) {
                     return $matches[0];
                 }
                 
