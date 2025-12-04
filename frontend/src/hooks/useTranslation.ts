@@ -1,28 +1,41 @@
 /**
  * React Hook for Translations
  * Provides access to translated UI strings
+ * Optimized with localStorage caching for instant initial load
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fetchTranslations, Translations, getDefaultTranslations } from '@/lib/translations';
 import { parseLanguageFromPath } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 
 export function useTranslation() {
   const location = useLocation();
-  const [translations, setTranslations] = useState<Translations | null>(null);
+  // Initialize with default translations for instant render
+  const [translations, setTranslations] = useState<Translations | null>(() => getDefaultTranslations());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const lastLangRef = useRef<string | null | undefined>(undefined);
 
   // Get current language from URL
   const { lang: currentLang } = parseLanguageFromPath(location.pathname);
 
   useEffect(() => {
+    // Skip if language hasn't changed
+    if (lastLangRef.current === currentLang) {
+      return;
+    }
+    lastLangRef.current = currentLang;
+
     let isMounted = true;
 
     async function loadTranslations() {
       try {
-        setLoading(true);
+        // Don't set loading to true if we already have translations
+        // This prevents flash of loading state on subsequent navigations
+        if (!translations) {
+          setLoading(true);
+        }
         setError(null);
         
         const trans = await fetchTranslations(currentLang || null);
@@ -35,10 +48,9 @@ export function useTranslation() {
         if (isMounted) {
           setError(err instanceof Error ? err : new Error('Failed to load translations'));
           setLoading(false);
-          // Still set default translations on error
-          const defaultTrans = await fetchTranslations(null);
-          if (isMounted) {
-            setTranslations(defaultTrans);
+          // Keep existing translations on error, or use defaults
+          if (!translations) {
+            setTranslations(getDefaultTranslations());
           }
         }
       }

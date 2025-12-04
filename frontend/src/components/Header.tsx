@@ -9,23 +9,18 @@ import { LogIn, Mail, Search, Menu, X } from 'lucide-react';
 import SearchModal from './SearchModal';
 import LanguageSelector from './LanguageSelector';
 import { parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
-import { getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Header() {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
   const { t } = useTranslation();
 
   // Get current language from URL path
   const { lang: currentLang } = parseLanguageFromPath(location.pathname);
-
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
 
   // Helper function to build language-aware links
   const buildLink = (path: string) => buildLanguageUrl(path, currentLang, defaultLang);

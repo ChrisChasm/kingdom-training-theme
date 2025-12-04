@@ -1,79 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import LLMBackground from '@/components/LLMBackground';
 import SEO from '@/components/SEO';
-import { getTools, getToolCategories, getTags, WordPressPost, Category, Tag, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { parseLanguageFromPath } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTools, useToolCategories, filterToolsByLanguage } from '@/hooks/useTools';
+import { useTags } from '@/hooks/useTags';
 
 export default function ToolsPage() {
   const { lang } = useParams<{ lang?: string }>();
   const location = useLocation();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [tools, setTools] = useState<WordPressPost[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Get filter params
+  const categoryId = searchParams.get('category');
+  const tagId = searchParams.get('tag');
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const categoryId = searchParams.get('category');
-        const tagId = searchParams.get('tag');
+  // Fetch data using React Query hooks
+  const { data: toolsData = [], isLoading: toolsLoading } = useTools({
+    per_page: 100,
+    orderby: 'date',
+    order: 'desc',
+    tool_categories: categoryId || undefined,
+    tags: tagId || undefined,
+    lang: targetLang || undefined
+  });
 
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
+  const { data: categories = [], isLoading: categoriesLoading } = useToolCategories();
+  const { data: tags = [], isLoading: tagsLoading } = useTags({ hide_empty: true, post_type: 'tools' });
 
-        const [toolsData, categoriesData, tagsData] = await Promise.all([
-          getTools({
-            per_page: 100,
-            orderby: 'date',
-            order: 'desc',
-            tool_categories: categoryId || undefined,
-            tags: tagId || undefined,
-            lang: targetLang || undefined
-          }),
-          getToolCategories(),
-          getTags({ hide_empty: true, post_type: 'tools' })
-        ]);
+  // Filter tools by language (memoized)
+  const tools = useMemo(
+    () => filterToolsByLanguage(toolsData, targetLang),
+    [toolsData, targetLang]
+  );
 
-        // Filter tools by language to ensure only matching language is shown
-        const filteredTools = toolsData.filter(tool => {
-          if (targetLang === null) {
-            // Default language: include posts with null/undefined language
-            return tool.language === null || tool.language === undefined;
-          } else {
-            // Specific language: only include posts matching that language
-            return tool.language === targetLang;
-          }
-        });
-
-        setTools(filteredTools);
-        setCategories(categoriesData);
-        setTags(tagsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setTools([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [searchParams, currentLang, defaultLang]);
+  const loading = toolsLoading || categoriesLoading || tagsLoading;
 
   if (loading) {
     return (

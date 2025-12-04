@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "rm -rf ../dist && tsc && vite build",
+    "build:snap": "npm run build && react-snap",
     "build:theme": "npm run build && npm run copy:theme",
+    "build:theme:snap": "npm run build:snap && npm run copy:theme",
     "build:watch": "vite build --watch",
     "watch": "concurrently -n \"BUILD,COPY\" -c \"blue,green\" \"npm run build:watch\" \"node scripts/watch-and-copy.js\"",
     "copy:theme": "node scripts/copy-to-theme.js",
@@ -15,7 +17,32 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit"
   },
+  "reactSnap": {
+    "source": "dist",
+    "destination": "dist",
+    "include": [
+      "/",
+      "/articles",
+      "/tools",
+      "/strategy-courses",
+      "/about",
+      "/newsletter",
+      "/privacy",
+      "/login"
+    ],
+    "skipThirdPartyRequests": true,
+    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"],
+    "minifyHtml": {
+      "collapseWhitespace": false,
+      "removeComments": false
+    },
+    "inlineCss": false,
+    "cacheAjaxRequests": false,
+    "headless": true,
+    "puppeteerExecutablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
     "clsx": "^2.0.0",
     "date-fns": "^3.0.0",
     "lucide-react": "^0.553.0",
@@ -36,6 +63,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.32",
+    "react-snap": "^1.23.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.8"

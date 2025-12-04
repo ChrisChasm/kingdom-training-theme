@@ -207,8 +207,6 @@ export default function GenMapBackground() {
             // Update the player appearance
             if (youtubeLayerRef.current) {
                 youtubeLayerRef.current.setAttribute('data-platform', platformRef.current);
-                // Debug: verify platform switching
-                console.log('Platform switched to:', platformRef.current);
             }
         };
 

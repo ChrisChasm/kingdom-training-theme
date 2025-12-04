@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { getArticleBySlug, getArticles, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useArticle, useArticles, filterArticlesByLanguage } from '@/hooks/useArticles';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
@@ -13,71 +14,32 @@ export default function ArticleDetailPage() {
   const { slug, lang } = useParams<{ slug: string; lang?: string }>();
   const location = useLocation();
   const { t } = useTranslation();
-  const [article, setArticle] = useState<WordPressPost | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [relatedArticles, setRelatedArticles] = useState<WordPressPost[]>([]);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Fetch article using React Query
+  const { data: article, isLoading: articleLoading, isError } = useArticle(slug, currentLang);
 
-  useEffect(() => {
-    async function fetchArticle() {
-      if (!slug) {
-        setError(true);
-        setLoading(false);
-        return;
-      }
+  // Fetch related articles
+  const { data: articlesData = [], isLoading: relatedLoading } = useArticles({
+    per_page: 10,
+    orderby: 'date',
+    order: 'desc',
+    lang: targetLang || undefined
+  });
 
-      try {
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
+  // Filter related articles (memoized)
+  const relatedArticles = useMemo(() => {
+    if (!article) return [];
+    return filterArticlesByLanguage(articlesData, targetLang)
+      .filter(a => a.id !== article.id)
+      .slice(0, 9);
+  }, [articlesData, article, targetLang]);
 
-        const data = await getArticleBySlug(slug, currentLang);
-        if (data) {
-          setArticle(data);
-          
-          // Fetch additional articles (excluding current one) in same language
-          const articles = await getArticles({
-            per_page: 10,
-            orderby: 'date',
-            order: 'desc',
-            lang: targetLang || undefined
-          });
-          
-          // Filter by language and exclude current article
-          const filtered = articles
-            .filter(article => {
-              // Filter by language
-              if (targetLang === null) {
-                // Default language: include posts with null/undefined language
-                return article.language === null || article.language === undefined;
-              } else {
-                // Specific language: only include posts matching that language
-                return article.language === targetLang;
-              }
-            })
-            .filter(a => a.id !== data.id)
-            .slice(0, 9);
-          setRelatedArticles(filtered);
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        console.error('Error fetching article:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchArticle();
-  }, [slug, currentLang, defaultLang]);
+  const loading = articleLoading || relatedLoading;
 
   if (loading) {
     return (
@@ -90,7 +52,7 @@ export default function ArticleDetailPage() {
     );
   }
 
-  if (error || !article) {
+  if (isError || !article) {
     return (
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('error_article_not_found')}</h1>

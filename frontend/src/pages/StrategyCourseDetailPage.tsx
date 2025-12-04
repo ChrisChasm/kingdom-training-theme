@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { getStrategyCourseBySlug, getOrderedCourseSteps, getStrategyCourses, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { markStepCompleted, stripHtml, parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
+import { useCourse, useCourses, useOrderedCourseSteps, getAdditionalResources } from '@/hooks/useCourses';
 import ProgressIndicator from '@/components/ProgressIndicator';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
@@ -15,75 +16,39 @@ export default function StrategyCourseDetailPage() {
   const { slug, lang } = useParams<{ slug: string; lang?: string }>();
   const location = useLocation();
   const { t, tWithReplace } = useTranslation();
-  const [course, setCourse] = useState<WordPressPost | null>(null);
-  const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
-  const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
-
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  const targetLang = currentLang || defaultLang || null;
 
   // Scroll to top when navigating to a new course page
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
-  // Fetch ordered course steps from database
-  useEffect(() => {
-    async function fetchCourseSteps() {
-      try {
-        const steps = await getOrderedCourseSteps(currentLang, defaultLang);
-        setCourseSteps(steps);
-        
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
-        
-        // Fetch additional resources (courses not in ordered steps, excluding current course)
-        const allCourses = await getStrategyCourses({ 
-          per_page: 100, 
-          orderby: 'date', 
-          order: 'desc',
-          lang: currentLang
-        });
-        
-        // Get slugs of courses with steps to filter them out
-        const stepSlugs = steps.map(step => step.slug);
-        
-        // Filter out courses with steps and current course, and filter by language
-        const additional = allCourses
-          .filter(course => {
-            // Exclude courses with steps and current course
-            if (stepSlugs.includes(course.slug) || course.slug === slug) {
-              return false;
-            }
-            
-            // Filter by language to ensure only matching language is shown
-            if (targetLang === null) {
-              // Default language: include posts with null/undefined language
-              return course.language === null || course.language === undefined;
-            } else {
-              // Specific language: only include posts matching that language
-              return course.language === targetLang;
-            }
-          })
-          .slice(0, 9); // Limit to 9 items for 3 rows
-        
-        setAdditionalResources(additional);
-      } catch (err) {
-        console.error('Error fetching course steps:', err);
-        setCourseSteps([]);
-        setAdditionalResources([]);
-      }
-    }
-    fetchCourseSteps();
-  }, [slug, currentLang, defaultLang]);
+  // Fetch course using React Query
+  const { data: course, isLoading: courseLoading, isError } = useCourse(slug, currentLang);
+
+  // Fetch ordered course steps
+  const { data: courseSteps = [], isLoading: stepsLoading } = useOrderedCourseSteps(
+    currentLang, 
+    defaultLang
+  );
+
+  // Fetch all courses for additional resources
+  const { data: allCourses = [], isLoading: coursesLoading } = useCourses({
+    per_page: 100,
+    orderby: 'date',
+    order: 'desc',
+    lang: currentLang
+  });
+
+  // Calculate additional resources (memoized)
+  const additionalResources = useMemo(
+    () => getAdditionalResources(allCourses, courseSteps, slug, targetLang, 9),
+    [allCourses, courseSteps, slug, targetLang]
+  );
 
   // Find current step and navigation steps
   const { currentStep, nextStep, previousStep } = useMemo(() => {
@@ -104,38 +69,14 @@ export default function StrategyCourseDetailPage() {
     };
   }, [slug, courseSteps]);
 
+  // Mark step as completed when course loads
   useEffect(() => {
-    async function fetchCourse() {
-      if (!slug) {
-        setError(true);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await getStrategyCourseBySlug(slug, currentLang);
-        if (data) {
-          setCourse(data);
-          
-          // Mark this step as completed when the page is visited
-          // Check if this course has a steps meta field (is part of the ordered course)
-          if (data.steps !== null && data.steps !== undefined && data.steps >= 1 && data.steps <= 20) {
-            markStepCompleted(slug);
-          }
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        console.error('Error fetching course:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-        // Scroll to top after course loads
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    if (course && course.steps !== null && course.steps !== undefined && course.steps >= 1 && course.steps <= 20) {
+      markStepCompleted(course.slug);
     }
-    fetchCourse();
-  }, [slug, currentLang]);
+  }, [course]);
+
+  const loading = courseLoading || stepsLoading || coursesLoading;
 
   if (loading) {
     return (
@@ -148,7 +89,7 @@ export default function StrategyCourseDetailPage() {
     );
   }
 
-  if (error || !course) {
+  if (isError || !course) {
     return (
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('error_course_not_found')}</h1>

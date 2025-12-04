@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import ContentCard from '@/components/ContentCard';
 import NewsletterCTA from '@/components/NewsletterCTA';
@@ -8,68 +8,67 @@ import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import KeyInfoSection from '@/components/KeyInfoSection';
 import ArticleTitlesBackground from '@/components/ArticleTitlesBackground';
-import { getArticles, getTools, getOrderedCourseSteps, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Link } from 'react-router-dom';
+import { useArticles, filterArticlesByLanguage } from '@/hooks/useArticles';
+import { useTools, filterToolsByLanguage } from '@/hooks/useTools';
+import { useOrderedCourseSteps } from '@/hooks/useCourses';
 import { parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
 
 export default function HomePage() {
   const { lang } = useParams<{ lang?: string }>();
   const location = useLocation();
   const { t, tWithReplace } = useTranslation();
-  const [articles, setArticles] = useState<WordPressPost[]>([]);
-  const [backgroundArticles, setBackgroundArticles] = useState<WordPressPost[]>([]);
-  const [tools, setTools] = useState<WordPressPost[]>([]);
-  const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Fetch data using React Query hooks
+  const { data: articlesData = [], isLoading: articlesLoading } = useArticles({ 
+    per_page: 3, 
+    orderby: 'date', 
+    order: 'desc', 
+    lang: targetLang || undefined 
+  });
+  
+  const { data: backgroundArticlesData = [], isLoading: backgroundLoading } = useArticles({ 
+    per_page: 15, 
+    orderby: 'date', 
+    order: 'desc', 
+    lang: targetLang || undefined 
+  });
+  
+  const { data: toolsData = [], isLoading: toolsLoading } = useTools({ 
+    per_page: 3, 
+    orderby: 'date', 
+    order: 'desc', 
+    lang: targetLang || undefined 
+  });
+  
+  const { data: courseSteps = [], isLoading: coursesLoading } = useOrderedCourseSteps(
+    currentLang, 
+    defaultLang
+  );
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
+  // Filter by language (memoized)
+  const articles = useMemo(
+    () => filterArticlesByLanguage(articlesData, targetLang),
+    [articlesData, targetLang]
+  );
+  
+  const backgroundArticles = useMemo(
+    () => filterArticlesByLanguage(backgroundArticlesData, targetLang),
+    [backgroundArticlesData, targetLang]
+  );
+  
+  const tools = useMemo(
+    () => filterToolsByLanguage(toolsData, targetLang),
+    [toolsData, targetLang]
+  );
 
-        const [articlesData, backgroundArticlesData, toolsData, orderedSteps] = await Promise.all([
-          getArticles({ per_page: 3, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
-          getArticles({ per_page: 15, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
-          getTools({ per_page: 3, orderby: 'date', order: 'desc', lang: targetLang || undefined }).catch(() => []),
-          getOrderedCourseSteps(currentLang, defaultLang).catch(() => []),
-        ]);
-
-        // Filter articles and tools by language
-        const filterByLanguage = <T extends { language?: string | null }>(items: T[]): T[] => {
-          return items.filter(item => {
-            if (targetLang === null) {
-              // Default language: include posts with null/undefined language
-              return item.language === null || item.language === undefined;
-            } else {
-              // Specific language: only include posts matching that language
-              return item.language === targetLang;
-            }
-          });
-        };
-
-        setArticles(filterByLanguage(articlesData));
-        setBackgroundArticles(filterByLanguage(backgroundArticlesData));
-        setTools(filterByLanguage(toolsData));
-        setCourseSteps(orderedSteps);
-      } catch (error) {
-        console.error('Error fetching homepage data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [currentLang, defaultLang]);
+  const loading = articlesLoading || backgroundLoading || toolsLoading || coursesLoading;
 
   if (loading) {
     return (

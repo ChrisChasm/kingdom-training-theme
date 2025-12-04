@@ -1,79 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
 import Sidebar from '@/components/Sidebar';
 import IdeasBackground from '@/components/IdeasBackground';
 import SEO from '@/components/SEO';
-import { getArticles, getArticleCategories, getTags, WordPressPost, Category, Tag, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { parseLanguageFromPath } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useArticles, useArticleCategories, filterArticlesByLanguage } from '@/hooks/useArticles';
+import { useTags } from '@/hooks/useTags';
 
 export default function ArticlesPage() {
   const { lang } = useParams<{ lang?: string }>();
   const location = useLocation();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const [articles, setArticles] = useState<WordPressPost[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Get filter params
+  const categoryId = searchParams.get('category');
+  const tagId = searchParams.get('tag');
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const categoryId = searchParams.get('category');
-        const tagId = searchParams.get('tag');
+  // Fetch data using React Query hooks
+  const { data: articlesData = [], isLoading: articlesLoading } = useArticles({
+    per_page: 100,
+    orderby: 'date',
+    order: 'desc',
+    article_categories: categoryId || undefined,
+    tags: tagId || undefined,
+    lang: targetLang || undefined
+  });
 
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
+  const { data: categories = [], isLoading: categoriesLoading } = useArticleCategories();
+  const { data: tags = [], isLoading: tagsLoading } = useTags({ hide_empty: true, post_type: 'articles' });
 
-        const [articlesData, categoriesData, tagsData] = await Promise.all([
-          getArticles({
-            per_page: 100,
-            orderby: 'date',
-            order: 'desc',
-            article_categories: categoryId || undefined,
-            tags: tagId || undefined,
-            lang: targetLang || undefined
-          }),
-          getArticleCategories(),
-          getTags({ hide_empty: true, post_type: 'articles' })
-        ]);
+  // Filter articles by language (memoized)
+  const articles = useMemo(
+    () => filterArticlesByLanguage(articlesData, targetLang),
+    [articlesData, targetLang]
+  );
 
-        // Filter articles by language to ensure only matching language is shown
-        const filteredArticles = articlesData.filter(article => {
-          if (targetLang === null) {
-            // Default language: include posts with null/undefined language
-            return article.language === null || article.language === undefined;
-          } else {
-            // Specific language: only include posts matching that language
-            return article.language === targetLang;
-          }
-        });
-
-        setArticles(filteredArticles);
-        setCategories(categoriesData);
-        setTags(tagsData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setArticles([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [searchParams, currentLang, defaultLang]);
+  const loading = articlesLoading || categoriesLoading || tagsLoading;
 
   if (loading) {
     return (

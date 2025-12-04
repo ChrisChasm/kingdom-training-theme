@@ -1,11 +1,13 @@
 /**
  * Language Selector Component
  * Displays available languages and allows switching between them
+ * Uses centralized LanguageContext for cached language data
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getLanguages, getDefaultLanguage, Language } from '@/lib/wordpress';
+import { Language } from '@/lib/wordpress';
+import { useLanguageContext } from '@/contexts/LanguageContext';
 import { parseLanguageFromPath, switchLanguageInUrl } from '@/lib/utils';
 import { Globe } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -14,50 +16,11 @@ export default function LanguageSelector() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, tWithReplace } = useTranslation();
-  const [languages, setLanguages] = useState<Language[]>([]);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const { languages, defaultLang, loading } = useLanguageContext();
   const [currentLang, setCurrentLang] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Debug: Log component mount
-  useEffect(() => {
-    console.log('LanguageSelector: Component mounted');
-  }, []);
-
-  useEffect(() => {
-    async function loadLanguages() {
-      try {
-        const [langs, defaultLanguage] = await Promise.all([
-          getLanguages(),
-          getDefaultLanguage()
-        ]);
-        
-        console.log('LanguageSelector: Loaded languages', langs);
-        console.log('LanguageSelector: Default language', defaultLanguage);
-        
-        setLanguages(langs);
-        setDefaultLang(defaultLanguage);
-        
-        // Get current language from URL
-        const { lang } = parseLanguageFromPath(location.pathname);
-        setCurrentLang(lang || defaultLanguage);
-      } catch (error) {
-        console.error('Error loading languages:', error);
-        // Log more details about the error
-        if (error instanceof Error) {
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    loadLanguages();
-  }, [location.pathname]);
-
-  // Update current language when pathname changes
+  // Update current language when pathname or defaultLang changes
   useEffect(() => {
     const { lang } = parseLanguageFromPath(location.pathname);
     setCurrentLang(lang || defaultLang);

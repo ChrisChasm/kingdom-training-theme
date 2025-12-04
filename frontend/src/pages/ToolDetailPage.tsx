@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { getToolBySlug, getTools, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTool, useTools, filterToolsByLanguage } from '@/hooks/useTools';
 import ContentCard from '@/components/ContentCard';
 import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
@@ -13,71 +14,32 @@ export default function ToolDetailPage() {
   const { slug, lang } = useParams<{ slug: string; lang?: string }>();
   const location = useLocation();
   const { t } = useTranslation();
-  const [tool, setTool] = useState<WordPressPost | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [additionalTools, setAdditionalTools] = useState<WordPressPost[]>([]);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Fetch tool using React Query
+  const { data: tool, isLoading: toolLoading, isError } = useTool(slug, currentLang);
 
-  useEffect(() => {
-    async function fetchTool() {
-      if (!slug) {
-        setError(true);
-        setLoading(false);
-        return;
-      }
+  // Fetch additional tools
+  const { data: toolsData = [], isLoading: additionalLoading } = useTools({
+    per_page: 10,
+    orderby: 'date',
+    order: 'desc',
+    lang: targetLang || undefined
+  });
 
-      try {
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
+  // Filter additional tools (memoized)
+  const additionalTools = useMemo(() => {
+    if (!tool) return [];
+    return filterToolsByLanguage(toolsData, targetLang)
+      .filter(t => t.id !== tool.id)
+      .slice(0, 9);
+  }, [toolsData, tool, targetLang]);
 
-        const data = await getToolBySlug(slug, currentLang);
-        if (data) {
-          setTool(data);
-          
-          // Fetch additional tools (excluding current one) in same language
-          const tools = await getTools({
-            per_page: 10,
-            orderby: 'date',
-            order: 'desc',
-            lang: targetLang || undefined
-          });
-          
-          // Filter by language and exclude current tool
-          const filtered = tools
-            .filter(tool => {
-              // Filter by language
-              if (targetLang === null) {
-                // Default language: include posts with null/undefined language
-                return tool.language === null || tool.language === undefined;
-              } else {
-                // Specific language: only include posts matching that language
-                return tool.language === targetLang;
-              }
-            })
-            .filter(t => t.id !== data.id)
-            .slice(0, 9);
-          setAdditionalTools(filtered);
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        console.error('Error fetching tool:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTool();
-  }, [slug, currentLang, defaultLang]);
+  const loading = toolLoading || additionalLoading;
 
   if (loading) {
     return (
@@ -90,7 +52,7 @@ export default function ToolDetailPage() {
     );
   }
 
-  if (error || !tool) {
+  if (isError || !tool) {
     return (
       <div className="container-custom py-16 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('error_tool_not_found')}</h1>

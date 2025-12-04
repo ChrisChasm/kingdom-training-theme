@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import ContentCard from '@/components/ContentCard';
@@ -6,9 +6,10 @@ import ProgressIndicator from '@/components/ProgressIndicator';
 import NeuralBackground from '@/components/NeuralBackground';
 import SEO from '@/components/SEO';
 import { ChevronRight } from 'lucide-react';
-import { getStrategyCourses, getOrderedCourseSteps, WordPressPost, getDefaultLanguage } from '@/lib/wordpress';
+import { useDefaultLanguage } from '@/contexts/LanguageContext';
 import { getThemeAssetUrl, parseLanguageFromPath, buildLanguageUrl } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useCourses, useOrderedCourseSteps, getAdditionalResources } from '@/hooks/useCourses';
 
 export interface CourseStep {
   number: number;
@@ -20,70 +21,34 @@ export default function StrategyCoursesPage() {
   const { lang } = useParams<{ lang?: string }>();
   const location = useLocation();
   const { t, tWithReplace } = useTranslation();
-  const [courseSteps, setCourseSteps] = useState<WordPressPost[]>([]);
-  const [additionalResources, setAdditionalResources] = useState<WordPressPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [defaultLang, setDefaultLang] = useState<string | null>(null);
+  const defaultLang = useDefaultLanguage();
   const roadmapRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
   // Get current language from URL params or path
   const currentLang = lang || parseLanguageFromPath(location.pathname).lang || undefined;
+  const targetLang = currentLang || defaultLang || null;
 
-  // Fetch default language
-  useEffect(() => {
-    getDefaultLanguage().then(setDefaultLang);
-  }, []);
+  // Fetch data using React Query hooks
+  const { data: courseSteps = [], isLoading: stepsLoading } = useOrderedCourseSteps(
+    currentLang, 
+    defaultLang
+  );
 
-  useEffect(() => {
-    async function fetchCourses() {
-      try {
-        // Fetch ordered course steps from database
-        const orderedSteps = await getOrderedCourseSteps(currentLang, defaultLang);
-        setCourseSteps(orderedSteps);
-        
-        // Determine target language: use provided lang, or defaultLang, or null for default
-        const targetLang = currentLang || defaultLang || null;
-        
-        // Fetch all courses to find additional resources
-        const allCourses = await getStrategyCourses({ 
-          per_page: 100, 
-          orderby: 'date', 
-          order: 'desc',
-          lang: currentLang
-        });
-        
-        // Get slugs of courses with steps to filter them out
-        const stepSlugs = orderedSteps.map(step => step.slug);
-        
-        // Filter out courses with steps and filter by language to get additional resources
-        const additional = allCourses.filter(course => {
-          // Exclude courses with steps
-          if (stepSlugs.includes(course.slug)) {
-            return false;
-          }
-          
-          // Filter by language to ensure only matching language is shown
-          if (targetLang === null) {
-            // Default language: include posts with null/undefined language
-            return course.language === null || course.language === undefined;
-          } else {
-            // Specific language: only include posts matching that language
-            return course.language === targetLang;
-          }
-        });
-        
-        setAdditionalResources(additional);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-        setCourseSteps([]);
-        setAdditionalResources([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCourses();
-  }, [currentLang, defaultLang]);
+  const { data: allCourses = [], isLoading: coursesLoading } = useCourses({
+    per_page: 100,
+    orderby: 'date',
+    order: 'desc',
+    lang: currentLang
+  });
+
+  // Calculate additional resources (memoized)
+  const additionalResources = useMemo(
+    () => getAdditionalResources(allCourses, courseSteps, undefined, targetLang),
+    [allCourses, courseSteps, targetLang]
+  );
+
+  const loading = stepsLoading || coursesLoading;
 
   // Parallax effect for roadmap
   useEffect(() => {

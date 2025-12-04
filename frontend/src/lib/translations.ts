@@ -1,11 +1,24 @@
 /**
  * Translation System for Frontend UI Strings
  * Fetches translations from WordPress REST API and provides translation functions
+ * Includes localStorage caching for improved performance
  */
 
 const API_URL = typeof window !== 'undefined' 
   ? '/wp-json' 
   : (import.meta.env.VITE_WORDPRESS_API_URL || 'http://localhost:8888/wp-json');
+
+// Cache configuration
+const TRANSLATION_CACHE_KEY = 'kt_translations_cache';
+const TRANSLATION_CACHE_VERSION = '1.0';
+const TRANSLATION_CACHE_TTL = 86400000; // 24 hours in milliseconds
+
+interface CachedTranslation {
+  translations: Translations;
+  language: string | null;
+  timestamp: number;
+  version: string;
+}
 
 export interface Translations {
   // Navigation
@@ -271,19 +284,81 @@ export interface Translations {
   ui_single_language_title: string;
 }
 
-// Cache for translations
+// Cache for translations (in-memory)
 let translationsCache: Translations | null = null;
 let currentLanguage: string | null = null;
 
 /**
+ * Check if we're in browser environment
+ */
+function isBrowser(): boolean {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+}
+
+/**
+ * Get cached translations from localStorage
+ */
+function getCachedTranslations(lang: string | null): Translations | null {
+  if (!isBrowser()) return null;
+  try {
+    const cached = localStorage.getItem(TRANSLATION_CACHE_KEY);
+    if (!cached) return null;
+    
+    const parsed: CachedTranslation = JSON.parse(cached);
+    
+    // Validate cache: same language, same version, not expired
+    if (
+      parsed.language === lang &&
+      parsed.version === TRANSLATION_CACHE_VERSION &&
+      Date.now() - parsed.timestamp < TRANSLATION_CACHE_TTL
+    ) {
+      return parsed.translations;
+    }
+  } catch (e) {
+    console.warn('Failed to read translation cache:', e);
+  }
+  return null;
+}
+
+/**
+ * Save translations to localStorage cache
+ */
+function setCachedTranslations(translations: Translations, lang: string | null): void {
+  if (!isBrowser()) return;
+  try {
+    const cacheData: CachedTranslation = {
+      translations,
+      language: lang,
+      timestamp: Date.now(),
+      version: TRANSLATION_CACHE_VERSION,
+    };
+    localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(cacheData));
+  } catch (e) {
+    console.warn('Failed to cache translations:', e);
+  }
+}
+
+/**
  * Fetch translations for a specific language
+ * Checks in-memory cache, then localStorage cache, then fetches from API
  */
 export async function fetchTranslations(lang?: string | null): Promise<Translations> {
-  // Use cached translations if language hasn't changed
-  if (translationsCache && currentLanguage === lang) {
+  const normalizedLang = lang || null;
+  
+  // Check in-memory cache first (fastest)
+  if (translationsCache && currentLanguage === normalizedLang) {
     return translationsCache;
   }
 
+  // Check localStorage cache (fast, persisted)
+  const cachedTranslations = getCachedTranslations(normalizedLang);
+  if (cachedTranslations) {
+    translationsCache = cachedTranslations;
+    currentLanguage = normalizedLang;
+    return translationsCache;
+  }
+
+  // Fetch from API
   try {
     const langParam = lang ? `?lang=${lang}` : '';
     const response = await fetch(`${API_URL}/gaal/v1/translations${langParam}`);
@@ -301,7 +376,11 @@ export async function fetchTranslations(lang?: string | null): Promise<Translati
         ...defaults,
         ...data.translations,
       } as Translations;
-      currentLanguage = lang || null;
+      currentLanguage = normalizedLang;
+      
+      // Cache in localStorage for future sessions
+      setCachedTranslations(translationsCache, normalizedLang);
+      
       return translationsCache;
     }
 
@@ -542,9 +621,25 @@ export function getDefaultTranslations(): Translations {
 
 /**
  * Clear translation cache (useful when language changes)
+ * Clears both in-memory and localStorage caches
  */
 export function clearTranslationCache() {
   translationsCache = null;
   currentLanguage = null;
+  if (isBrowser()) {
+    try {
+      localStorage.removeItem(TRANSLATION_CACHE_KEY);
+    } catch (e) {
+      console.warn('Failed to clear translation cache:', e);
+    }
+  }
+}
+
+/**
+ * Preload translations for a specific language
+ * Useful for prefetching translations before they're needed
+ */
+export async function preloadTranslations(lang: string | null): Promise<void> {
+  await fetchTranslations(lang);
 }
 
