@@ -158,6 +158,8 @@
   /* Respect inline styles (set by processImageWidths) while maintaining responsiveness */
   height: auto;
   max-width: 100%;
+  /* Prevent layout shift for images without dimensions */
+  display: block;
 }
 
 /* Hide date and byline on article and tool detail pages */

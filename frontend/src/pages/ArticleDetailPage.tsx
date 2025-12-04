@@ -8,7 +8,7 @@ import SEO from '@/components/SEO';
 import StructuredData from '@/components/StructuredData';
 import AdminEditLink from '@/components/AdminEditLink';
 import FeaturedImage from '@/components/FeaturedImage';
-import { stripHtml, parseLanguageFromPath } from '@/lib/utils';
+import { stripHtml, parseLanguageFromPath, processImageWidths } from '@/lib/utils';
 
 export default function ArticleDetailPage() {
   const { slug, lang } = useParams<{ slug: string; lang?: string }>();
@@ -69,6 +69,9 @@ export default function ArticleDetailPage() {
     ? stripHtml(article.excerpt.rendered) 
     : stripHtml(article.content.rendered).substring(0, 160);
   const articleKeywords = `M2DMM, ${articleTitle}, disciple making movements, media strategy, ${articleTitle.toLowerCase()}`;
+  
+  // Process content to add dimensions to images and prevent layout shift
+  const processedContent = useMemo(() => processImageWidths(article.content.rendered), [article.content.rendered]);
   
   const siteUrl = typeof window !== 'undefined' 
     ? window.location.origin 
@@ -138,7 +141,7 @@ export default function ArticleDetailPage() {
 
           <div 
             className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-p:text-gray-900 prose-p:my-6 prose-strong:text-gray-900 prose-strong:font-bold prose-a:text-primary-500 prose-a:no-underline hover:prose-a:underline prose-ul:my-6 prose-ol:my-6 prose-li:text-gray-900 prose-li:my-2"
-            dangerouslySetInnerHTML={{ __html: article.content.rendered }}
+            dangerouslySetInnerHTML={{ __html: processedContent }}
           />
         </div>
       </div>

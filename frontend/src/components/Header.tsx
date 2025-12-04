@@ -76,6 +76,7 @@ export default function Header() {
               width="200"
               height="40"
               className="h-10 w-auto"
+              style={{ aspectRatio: '200 / 40' }}
             />
           </Link>
 

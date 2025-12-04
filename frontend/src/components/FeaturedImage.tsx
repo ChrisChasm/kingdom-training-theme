@@ -23,9 +23,9 @@ export default function FeaturedImage({ src, alt, imageSizes }: FeaturedImagePro
 
   return (
     <div className="w-full h-48 md:h-96 bg-gray-200 relative overflow-hidden">
-      {/* Blurred background image */}
+      {/* Blurred background image - behind foreground */}
       <div 
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full z-0"
         style={{
           backgroundImage: `url(${src})`,
           backgroundSize: 'cover',
@@ -35,9 +35,8 @@ export default function FeaturedImage({ src, alt, imageSizes }: FeaturedImagePro
         }}
         aria-hidden="true"
       />
-      
-      {/* Foreground image with proper aspect ratio */}
-      <div className="relative w-full h-full flex items-center justify-center">
+      {/* Foreground image with proper aspect ratio - LCP element */}
+      <div className="relative w-full h-full flex items-center justify-center z-10">
         <img
           src={src}
           alt={alt}
@@ -49,6 +48,7 @@ export default function FeaturedImage({ src, alt, imageSizes }: FeaturedImagePro
           srcSet={imageSrcset?.srcset}
           sizes={imageSrcset?.sizes}
           className="max-w-full max-h-full object-contain"
+          style={{ aspectRatio: '16 / 9' }}
         />
       </div>
     </div>

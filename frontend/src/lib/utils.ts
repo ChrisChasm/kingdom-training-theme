@@ -267,10 +267,10 @@ export function switchLanguageInUrl(newLang: string | null, defaultLang: string 
 }
 
 /**
- * Process HTML content to respect image width attributes
- * Converts width attributes on images to inline styles so they're respected by CSS
+ * Process HTML content to respect image width attributes and add dimensions to unsized images
+ * Converts width attributes on images to inline styles and adds aspect-ratio to prevent layout shift
  * @param html - HTML content string
- * @returns Processed HTML with width attributes converted to inline styles
+ * @returns Processed HTML with width attributes converted to inline styles and aspect-ratio added
  */
 export function processImageWidths(html: string): string {
   if (typeof document === 'undefined') {
@@ -282,17 +282,38 @@ export function processImageWidths(html: string): string {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // Find all images with width attributes
-  const images = tempDiv.querySelectorAll('img[width]');
+  // Find all images
+  const images = tempDiv.querySelectorAll('img');
   
   images.forEach((img) => {
     const widthAttr = img.getAttribute('width');
-    if (widthAttr) {
-      // Convert width attribute to inline style
-      // This ensures CSS respects the width while still allowing max-width: 100% for responsiveness
+    const heightAttr = img.getAttribute('height');
+    const currentStyle = img.getAttribute('style') || '';
+    let newStyle = currentStyle;
+
+    // If image has both width and height, calculate aspect ratio
+    if (widthAttr && heightAttr) {
+      const width = parseInt(widthAttr);
+      const height = parseInt(heightAttr);
+      if (width > 0 && height > 0) {
+        const aspectRatio = width / height;
+        // Convert width attribute to inline style
+        const widthValue = widthAttr.includes('px') ? widthAttr : `${widthAttr}px`;
+        newStyle = `${newStyle ? newStyle + '; ' : ''}width: ${widthValue}; max-width: 100%; height: auto; aspect-ratio: ${aspectRatio};`.trim();
+        img.setAttribute('style', newStyle);
+      }
+    } else if (widthAttr) {
+      // Only width attribute - convert to inline style
       const widthValue = widthAttr.includes('px') ? widthAttr : `${widthAttr}px`;
-      const currentStyle = img.getAttribute('style') || '';
-      img.setAttribute('style', `${currentStyle ? currentStyle + '; ' : ''}width: ${widthValue}; max-width: 100%; height: auto;`.trim());
+      newStyle = `${newStyle ? newStyle + '; ' : ''}width: ${widthValue}; max-width: 100%; height: auto;`.trim();
+      img.setAttribute('style', newStyle);
+    } else if (!widthAttr && !heightAttr) {
+      // No dimensions - add default aspect ratio to prevent layout shift
+      // Default to 16:9 for article images, but allow override via style
+      if (!currentStyle.includes('aspect-ratio')) {
+        newStyle = `${newStyle ? newStyle + '; ' : ''}aspect-ratio: 16 / 9; width: 100%; height: auto;`.trim();
+        img.setAttribute('style', newStyle);
+      }
     }
   });
 
