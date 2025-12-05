@@ -20,6 +20,9 @@ require_once get_template_directory() . '/includes/class-gaal-llm-api.php';
 require_once get_template_directory() . '/includes/class-gaal-translation-job.php';
 require_once get_template_directory() . '/includes/class-gaal-content-processor.php';
 require_once get_template_directory() . '/includes/class-gaal-translation-engine.php';
+require_once get_template_directory() . '/includes/class-gaal-translation-scanner.php';
+require_once get_template_directory() . '/includes/class-gaal-batch-translator.php';
+require_once get_template_directory() . '/includes/class-gaal-translation-dashboard.php';
 
 // ============================================================================
 // PERFORMANCE OPTIMIZATIONS
@@ -2351,6 +2354,117 @@ function gaal_register_translation_api() {
                 'type' => 'integer',
                 'sanitize_callback' => 'absint',
             ),
+            'target_post_id' => array(
+                'required' => false,
+                'type' => 'integer',
+                'sanitize_callback' => 'absint',
+            ),
+        ),
+    ));
+    
+    // =========================================================================
+    // AUTO TRANSLATE DASHBOARD ENDPOINTS
+    // =========================================================================
+    
+    // Scan for translation gaps
+    register_rest_route('gaal/v1', '/translate/scan', array(
+        'methods' => 'GET',
+        'callback' => 'gaal_api_scan_translation_gaps',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'args' => array(
+            'post_type' => array(
+                'type' => 'string',
+                'default' => '',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+            'language' => array(
+                'type' => 'string',
+                'default' => '',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ));
+    
+    // Create draft translations
+    register_rest_route('gaal/v1', '/translate/create-drafts', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_create_translation_drafts',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+    ));
+}
+
+/**
+ * Scan for translation gaps
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response
+ */
+function gaal_api_scan_translation_gaps($request) {
+    $scanner = new GAAL_Translation_Scanner();
+    
+    $filters = array();
+    if ($request->get_param('post_type')) {
+        $filters['post_type'] = $request->get_param('post_type');
+    }
+    if ($request->get_param('language')) {
+        $filters['language'] = $request->get_param('language');
+    }
+    
+    return rest_ensure_response(array(
+        'success' => true,
+        'gaps' => $scanner->find_gaps($filters),
+        'summary' => $scanner->get_summary(),
+    ));
+}
+
+/**
+ * Create draft translations
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_create_translation_drafts($request) {
+    $items = $request->get_param('items');
+    
+    if (empty($items)) {
+        return new WP_Error('no_items', __('No items provided', 'kingdom-training'), array('status' => 400));
+    }
+    
+    $batch_translator = new GAAL_Batch_Translator();
+    $results = $batch_translator->create_drafts($items);
+    
+    // Count results
+    $created = 0;
+    $existed = 0;
+    $errors = 0;
+    
+    foreach ($results as $post_results) {
+        if (isset($post_results['error'])) {
+            $errors++;
+            continue;
+        }
+        foreach ($post_results as $lang_result) {
+            if (isset($lang_result['status'])) {
+                switch ($lang_result['status']) {
+                    case 'created': $created++; break;
+                    case 'exists': $existed++; break;
+                    case 'error': $errors++; break;
+                }
+            }
+        }
+    }
+    
+    return rest_ensure_response(array(
+        'success' => true,
+        'results' => $results,
+        'summary' => array(
+            'created' => $created,
+            'existed' => $existed,
+            'errors' => $errors,
         ),
     ));
 }
@@ -2656,12 +2770,14 @@ function gaal_api_translate_chunked($request) {
     $target_language = $request->get_param('target_language');
     $step = $request->get_param('step');
     $job_id = $request->get_param('job_id');
+    $target_post_id = $request->get_param('target_post_id');
     
     GAAL_Translation_Logger::debug('Chunked translation request', array(
         'source_post_id' => $source_post_id,
         'target_language' => $target_language,
         'step' => $step,
         'job_id' => $job_id,
+        'target_post_id' => $target_post_id,
     ));
     
     // Validate source post
@@ -2676,7 +2792,7 @@ function gaal_api_translate_chunked($request) {
     // Handle different steps
     switch ($step) {
         case 'init':
-            return gaal_chunked_translate_init($source_post, $target_language, $engine);
+            return gaal_chunked_translate_init($source_post, $target_language, $engine, $target_post_id);
             
         case 'title':
             return gaal_chunked_translate_title($job_id, $target_language, $engine);
@@ -2700,8 +2816,13 @@ function gaal_api_translate_chunked($request) {
 
 /**
  * Initialize chunked translation job
+ * 
+ * @param WP_Post $source_post Source post object
+ * @param string $target_language Target language code
+ * @param GAAL_Translation_Engine $engine Translation engine
+ * @param int|null $target_post_id Optional existing post ID to update instead of creating new
  */
-function gaal_chunked_translate_init($source_post, $target_language, $engine) {
+function gaal_chunked_translate_init($source_post, $target_language, $engine, $target_post_id = null) {
     // Get source content
     $content_processor = new GAAL_Content_Processor();
     $content = $content_processor->extract_translatable_content($source_post->ID);
@@ -2728,6 +2849,11 @@ function gaal_chunked_translate_init($source_post, $target_language, $engine) {
     $job->set_meta('source_post_type', $source_post->post_type);
     $job->set_meta('source_post_author', $source_post->post_author);
     
+    // Store target post ID if provided (for updating existing drafts)
+    if ($target_post_id) {
+        $job->set_meta('target_post_id', intval($target_post_id));
+    }
+    
     // Calculate total steps: init(done) + title + content chunks + excerpt + finalize
     $total_steps = 1 + 1 + count($chunks) + 1 + 1;
     $job->set_meta('total_steps', $total_steps);
@@ -2737,6 +2863,7 @@ function gaal_chunked_translate_init($source_post, $target_language, $engine) {
         'job_id' => $job_id,
         'source_post_id' => $source_post->ID,
         'target_language' => $target_language,
+        'target_post_id' => $target_post_id,
         'chunk_count' => count($chunks),
         'total_steps' => $total_steps,
     ));
@@ -2931,9 +3058,12 @@ function gaal_chunked_translate_finalize($job_id, $source_post, $target_language
         $source_language = pll_get_post_language($source_post->ID, 'slug') ?: 'en';
     }
     
-    // Check if translation already exists
+    // Check if we have a target post ID from the job (for updating existing drafts)
+    $target_post_id = $job->get_meta('target_post_id');
+    
+    // Check if translation already exists in Polylang
     $existing_translation = null;
-    if (function_exists('pll_get_post_translations')) {
+    if (!$target_post_id && function_exists('pll_get_post_translations')) {
         $translations = pll_get_post_translations($source_post->ID);
         if (isset($translations[$target_language])) {
             $existing_translation = get_post($translations[$target_language]);
@@ -2952,7 +3082,17 @@ function gaal_chunked_translate_finalize($job_id, $source_post, $target_language
     );
     
     // Create or update translated post
-    if ($existing_translation) {
+    if ($target_post_id) {
+        // Update existing draft (from batch creation)
+        $post_data['ID'] = $target_post_id;
+        $translated_post_id = wp_update_post($post_data);
+        
+        // Clear the "needs translation" flag
+        if (!is_wp_error($translated_post_id)) {
+            delete_post_meta($translated_post_id, '_gaal_needs_translation');
+            update_post_meta($translated_post_id, '_gaal_translated_at', current_time('mysql'));
+        }
+    } elseif ($existing_translation) {
         $post_data['ID'] = $existing_translation->ID;
         $translated_post_id = wp_update_post($post_data);
     } else {
@@ -2968,13 +3108,13 @@ function gaal_chunked_translate_finalize($job_id, $source_post, $target_language
         return $translated_post_id;
     }
     
-    // Set language in Polylang
-    if (function_exists('pll_set_post_language')) {
+    // Set language in Polylang (only needed if not using target_post_id which already has language set)
+    if (!$target_post_id && function_exists('pll_set_post_language')) {
         pll_set_post_language($translated_post_id, $target_language);
     }
     
-    // Link translations in Polylang
-    if (function_exists('pll_save_post_translations')) {
+    // Link translations in Polylang (only if not already linked via target_post_id)
+    if (!$target_post_id && function_exists('pll_save_post_translations')) {
         $translations = array();
         if (function_exists('pll_get_post_translations')) {
             $existing_translations = pll_get_post_translations($source_post->ID);
@@ -2985,9 +3125,9 @@ function gaal_chunked_translate_finalize($job_id, $source_post, $target_language
         pll_save_post_translations($translations);
     }
     
-    // Copy featured image if available
+    // Copy featured image if available (check if not already set)
     $thumbnail_id = get_post_thumbnail_id($source_post->ID);
-    if ($thumbnail_id) {
+    if ($thumbnail_id && !get_post_thumbnail_id($translated_post_id)) {
         set_post_thumbnail($translated_post_id, $thumbnail_id);
     }
     
@@ -3000,6 +3140,7 @@ function gaal_chunked_translate_finalize($job_id, $source_post, $target_language
         'job_id' => $job_id,
         'source_post_id' => $source_post->ID,
         'translated_post_id' => $translated_post_id,
+        'target_post_id_used' => $target_post_id ? true : false,
         'target_language' => $target_language,
     ));
     
