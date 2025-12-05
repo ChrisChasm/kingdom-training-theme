@@ -1,0 +1,130 @@
+/**
+ * Translation Admin Styles
+ * 
+ * Styles for translation meta box in WordPress admin
+ */
+
+.gaal-translation-meta-box {
+    padding: 0;
+}
+
+.gaal-translation-meta-box p {
+    margin: 0 0 10px 0;
+}
+
+.gaal-translation-actions {
+    margin-bottom: 15px;
+}
+
+.gaal-translation-status {
+    margin-top: 15px;
+}
+
+.gaal-translation-status h4 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.gaal-translation-languages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gaal-translation-language {
+    margin: 8px 0;
+    padding: 8px;
+    background: #f9f9f9;
+    border-left: 3px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.gaal-translation-language strong {
+    margin-right: 8px;
+    min-width: 100px;
+}
+
+.gaal-translation-status-text {
+    flex: 1;
+    margin-right: 8px;
+}
+
+.gaal-translation-status-text .status-publish {
+    color: #46b450;
+    font-weight: 600;
+}
+
+.gaal-translation-status-text .status-draft {
+    color: #f56e28;
+    font-weight: 600;
+}
+
+.gaal-translation-status-text .status-pending {
+    color: #ffb900;
+    font-weight: 600;
+}
+
+.gaal-translation-status-text .status-missing {
+    color: #999;
+    font-style: italic;
+}
+
+.gaal-translation-status-text .status-failed {
+    color: #dc3232;
+    font-weight: 600;
+}
+
+.gaal-translation-status-text a {
+    margin-left: 8px;
+    text-decoration: none;
+}
+
+.gaal-translation-messages {
+    margin-top: 10px;
+}
+
+.gaal-translation-messages .notice {
+    margin: 0;
+    padding: 8px 12px;
+}
+
+.gaal-translation-messages .notice p {
+    margin: 0;
+}
+
+/* Button states */
+.gaal-generate-all:disabled,
+.gaal-translate-single:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Loading spinner (optional enhancement) */
+.gaal-translation-language.loading {
+    opacity: 0.7;
+    position: relative;
+}
+
+.gaal-translation-language.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border: 2px solid #ccc;
+    border-top-color: #0073aa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -7,6 +7,21 @@
  */
 
 // ============================================================================
+// TRANSLATION AUTOMATION FEATURES
+// ============================================================================
+
+// Include translation automation classes
+// Note: Logger must be loaded first as other classes depend on it
+require_once get_template_directory() . '/includes/class-gaal-translation-logger.php';
+require_once get_template_directory() . '/includes/admin-translation-settings.php';
+require_once get_template_directory() . '/includes/class-gaal-translation-api.php';
+require_once get_template_directory() . '/includes/class-gaal-google-translate-api.php';
+require_once get_template_directory() . '/includes/class-gaal-llm-api.php';
+require_once get_template_directory() . '/includes/class-gaal-translation-job.php';
+require_once get_template_directory() . '/includes/class-gaal-content-processor.php';
+require_once get_template_directory() . '/includes/class-gaal-translation-engine.php';
+
+// ============================================================================
 // PERFORMANCE OPTIMIZATIONS
 // ============================================================================
 
@@ -1054,6 +1069,185 @@ function gaal_register_shortcode_api() {
 }
 add_action('rest_api_init', 'gaal_register_shortcode_api');
 
+// Add Translation meta box
+function gaal_add_translation_meta_box() {
+    $post_types = array('strategy_course', 'article', 'tool');
+    foreach ($post_types as $post_type) {
+        add_meta_box(
+            'gaal_translation_meta_box',
+            __('Multilingual Translation', 'kingdom-training'),
+            'gaal_translation_meta_box_callback',
+            $post_type,
+            'side',
+            'default'
+        );
+    }
+}
+add_action('add_meta_boxes', 'gaal_add_translation_meta_box');
+
+// Enqueue admin scripts and styles for translation meta box
+function gaal_enqueue_translation_admin_assets($hook) {
+    // Only load on post edit pages
+    if (!in_array($hook, array('post.php', 'post-new.php'))) {
+        return;
+    }
+    
+    global $post;
+    if (!$post) {
+        return;
+    }
+    
+    // Only load for our custom post types
+    $post_types = array('strategy_course', 'article', 'tool');
+    if (!in_array($post->post_type, $post_types)) {
+        return;
+    }
+    
+    wp_enqueue_script(
+        'gaal-translation-admin',
+        get_template_directory_uri() . '/admin/js/translation-admin.js',
+        array('jquery'),
+        '1.0.0',
+        true
+    );
+    
+    wp_enqueue_style(
+        'gaal-translation-admin',
+        get_template_directory_uri() . '/admin/css/translation-admin.css',
+        array(),
+        '1.0.0'
+    );
+    
+    // Localize script with data
+    wp_localize_script('gaal-translation-admin', 'gaalTranslation', array(
+        'apiUrl' => rest_url('gaal/v1/translate/'),
+        'nonce' => wp_create_nonce('wp_rest'),
+        'postId' => $post->ID,
+        'strings' => array(
+            'generateAll' => __('Generate All Translations', 'kingdom-training'),
+            'translateSingle' => __('Translate', 'kingdom-training'),
+            'retranslate' => __('Re-translate', 'kingdom-training'),
+            'resume' => __('Resume', 'kingdom-training'),
+            'loading' => __('Loading...', 'kingdom-training'),
+            'success' => __('Success', 'kingdom-training'),
+            'error' => __('Error', 'kingdom-training'),
+            'inProgress' => __('In Progress', 'kingdom-training'),
+            'completed' => __('Completed', 'kingdom-training'),
+            'pending' => __('Pending', 'kingdom-training'),
+            'failed' => __('Failed', 'kingdom-training'),
+        ),
+    ));
+}
+add_action('admin_enqueue_scripts', 'gaal_enqueue_translation_admin_assets');
+
+// Translation meta box callback
+function gaal_translation_meta_box_callback($post) {
+    // Get current language
+    $current_language = 'en';
+    if (function_exists('pll_get_post_language')) {
+        $current_language = pll_get_post_language($post->ID, 'slug') ?: 'en';
+    }
+    
+    // Get enabled languages
+    $enabled_languages = get_option('gaal_translation_enabled_languages', array());
+    
+    // Get available languages from Polylang
+    $available_languages = array();
+    if (function_exists('PLL') && isset(PLL()->model)) {
+        // Get full language objects from Polylang
+        $languages = PLL()->model->get_languages_list();
+        foreach ($languages as $lang) {
+            $available_languages[$lang->slug] = $lang->name;
+        }
+    } elseif (function_exists('pll_languages_list')) {
+        // Fallback: get language slugs and retrieve language data
+        $language_slugs = pll_languages_list();
+        foreach ($language_slugs as $slug) {
+            if (function_exists('PLL') && isset(PLL()->model)) {
+                $lang = PLL()->model->get_language($slug);
+                if ($lang) {
+                    $available_languages[$lang->slug] = $lang->name;
+                }
+            } else {
+                // Last resort: use slug as name
+                $available_languages[$slug] = strtoupper($slug);
+            }
+        }
+    }
+    
+    // Get translation status
+    $translations = array();
+    if (function_exists('pll_get_post_translations')) {
+        $post_translations = pll_get_post_translations($post->ID);
+        if ($post_translations) {
+            foreach ($post_translations as $lang => $trans_id) {
+                if ($lang !== $current_language) {
+                    $trans_post = get_post($trans_id);
+                    $translations[$lang] = array(
+                        'post_id' => $trans_id,
+                        'status' => $trans_post ? $trans_post->post_status : 'missing',
+                        'title' => $trans_post ? $trans_post->post_title : '',
+                    );
+                }
+            }
+        }
+    }
+    
+    ?>
+    <div class="gaal-translation-meta-box">
+        <p>
+            <strong><?php echo esc_html__('Current Language:', 'kingdom-training'); ?></strong>
+            <?php echo esc_html($available_languages[$current_language] ?? $current_language); ?>
+        </p>
+        
+        <?php if (empty($enabled_languages)): ?>
+            <p class="description">
+                <?php echo esc_html__('No languages enabled for translation. Please configure in Settings → Translation Automation.', 'kingdom-training'); ?>
+            </p>
+        <?php else: ?>
+            <div class="gaal-translation-actions">
+                <button type="button" class="button button-primary gaal-generate-all" style="width: 100%; margin-bottom: 10px;">
+                    <?php echo esc_html__('Generate All Translations', 'kingdom-training'); ?>
+                </button>
+            </div>
+            
+            <div class="gaal-translation-status">
+                <h4><?php echo esc_html__('Translation Status', 'kingdom-training'); ?></h4>
+                <ul class="gaal-translation-languages">
+                    <?php foreach ($enabled_languages as $lang): ?>
+                        <?php if ($lang === $current_language) continue; ?>
+                        <li class="gaal-translation-language" data-language="<?php echo esc_attr($lang); ?>">
+                            <strong><?php echo esc_html($available_languages[$lang] ?? $lang); ?>:</strong>
+                            <span class="gaal-translation-status-text">
+                                <?php if (isset($translations[$lang])): ?>
+                                    <?php 
+                                    $status = $translations[$lang]['status'];
+                                    $status_label = $status === 'publish' ? __('Published', 'kingdom-training') : 
+                                                   ($status === 'draft' ? __('Draft', 'kingdom-training') : 
+                                                   ($status === 'pending' ? __('Pending', 'kingdom-training') : __('Unknown', 'kingdom-training')));
+                                    ?>
+                                    <span class="status-<?php echo esc_attr($status); ?>"><?php echo esc_html($status_label); ?></span>
+                                    <a href="<?php echo esc_url(get_edit_post_link($translations[$lang]['post_id'])); ?>" target="_blank">
+                                        <?php echo esc_html__('Edit', 'kingdom-training'); ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="status-missing"><?php echo esc_html__('Not translated', 'kingdom-training'); ?></span>
+                                <?php endif; ?>
+                            </span>
+                            <button type="button" class="button button-small gaal-translate-single" data-language="<?php echo esc_attr($lang); ?>" style="margin-left: 5px;">
+                                <?php echo esc_html__('Translate', 'kingdom-training'); ?>
+                            </button>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            
+            <div class="gaal-translation-messages" style="margin-top: 10px;"></div>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+
 // Add Steps meta box for Strategy Course post type
 function gaal_add_steps_meta_box() {
     add_meta_box(
@@ -1820,5 +2014,702 @@ function gaal_register_translations_api() {
     ));
 }
 add_action('rest_api_init', 'gaal_register_translations_api');
+
+// ============================================================================
+// TRANSLATION AUTOMATION REST API ENDPOINTS
+// ============================================================================
+
+/**
+ * Register translation automation REST API endpoints
+ */
+function gaal_register_translation_api() {
+    // Generate all translations endpoint
+    register_rest_route('gaal/v1', '/translate/generate-all', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_generate_all_translations',
+        'permission_callback' => 'gaal_check_translation_permissions',
+        'args' => array(
+            'post_id' => array(
+                'required' => true,
+                'type' => 'integer',
+                'validate_callback' => function($param) {
+                    return is_numeric($param) && $param > 0;
+                },
+                'sanitize_callback' => 'absint',
+            ),
+        ),
+    ));
+    
+    // Simple test endpoint - always returns success
+    register_rest_route('gaal/v1', '/translate/test', array(
+        'methods' => array('GET', 'POST'),
+        'callback' => function($request) {
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Test endpoint working',
+                'method' => $request->get_method(),
+                'params' => $request->get_params(),
+                'body_params' => $request->get_body_params(),
+                'json_params' => $request->get_json_params(),
+                'body' => $request->get_body(),
+            ), 200);
+        },
+        'permission_callback' => '__return_true', // No auth required for testing
+    ));
+    
+    // Test Google Translate API configuration
+    register_rest_route('gaal/v1', '/translate/test-google', array(
+        'methods' => 'GET',
+        'callback' => function($request) {
+            $google_api_key = get_option('gaal_translation_google_api_key', '');
+            
+            if (empty($google_api_key)) {
+                return new WP_REST_Response(array(
+                    'success' => false,
+                    'error' => 'Google Translate API key is not configured',
+                    'api_key_status' => 'empty',
+                ), 200);
+            }
+            
+            // Test the API
+            $google_translate = new GAAL_Google_Translate_API($google_api_key);
+            $result = $google_translate->test_connection();
+            
+            if (is_wp_error($result)) {
+                return new WP_REST_Response(array(
+                    'success' => false,
+                    'error' => $result->get_error_message(),
+                    'error_code' => $result->get_error_code(),
+                    'error_data' => $result->get_error_data(),
+                    'api_key_preview' => substr($google_api_key, 0, 8) . '...',
+                    'api_key_length' => strlen($google_api_key),
+                ), 200);
+            }
+            
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Google Translate API is working',
+                'test_result' => $result,
+            ), 200);
+        },
+        'permission_callback' => 'gaal_check_translation_permissions',
+    ));
+    
+    // Translate single language endpoint
+    // NOTE: We intentionally omit 'args' validation here to avoid WordPress REST API
+    // type coercion issues with form data. All validation is done in the callback.
+    register_rest_route('gaal/v1', '/translate/single', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_translate_single',
+        'permission_callback' => 'gaal_check_translation_permissions',
+    ));
+    
+    // Re-translate endpoint
+    register_rest_route('gaal/v1', '/translate/retranslate', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_retranslate',
+        'permission_callback' => 'gaal_check_translation_permissions',
+        'args' => array(
+            'post_id' => array(
+                'required' => true,
+                'type' => 'integer',
+                'validate_callback' => function($param) {
+                    return is_numeric($param) && $param > 0;
+                },
+                'sanitize_callback' => 'absint',
+            ),
+            'target_language' => array(
+                'required' => false,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ));
+    
+    // Get translation status endpoint
+    register_rest_route('gaal/v1', '/translate/status/(?P<post_id>\d+)', array(
+        'methods' => 'GET',
+        'callback' => 'gaal_api_get_translation_status',
+        'permission_callback' => 'gaal_check_translation_permissions',
+        'args' => array(
+            'post_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                },
+            ),
+        ),
+    ));
+    
+    // Resume job endpoint
+    register_rest_route('gaal/v1', '/translate/resume', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_resume_job',
+        'permission_callback' => 'gaal_check_translation_permissions',
+    ));
+}
+add_action('rest_api_init', 'gaal_register_translation_api');
+
+/**
+ * Check if user has permission to use translation features
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return bool|WP_Error
+ */
+function gaal_check_translation_permissions($request) {
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        return new WP_Error('rest_forbidden', __('You must be logged in to use this endpoint.', 'kingdom-training'), array('status' => 401));
+    }
+    
+    // Check user capability
+    if (!current_user_can('edit_posts')) {
+        return new WP_Error('rest_forbidden', __('You do not have permission to use translation features.', 'kingdom-training'), array('status' => 403));
+    }
+    
+    // WordPress REST API automatically verifies nonce from X-WP-Nonce header
+    // If nonce verification fails, WordPress will return 403 before reaching this callback
+    return true;
+}
+
+/**
+ * Generate all translations for a post
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_generate_all_translations($request) {
+    // Get parameters from request body (JSON) or query string
+    $post_id = $request->get_param('post_id');
+    
+    // Log for debugging
+    GAAL_Translation_Logger::debug('Generate all translations request', array(
+        'post_id' => $post_id,
+        'method' => $request->get_method(),
+        'headers' => $request->get_headers(),
+        'body' => $request->get_body(),
+        'json_params' => $request->get_json_params(),
+    ));
+    
+    if (empty($post_id)) {
+        GAAL_Translation_Logger::error('Missing post_id in translation request');
+        return new WP_Error('missing_post_id', __('Post ID is required', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Verify post exists
+    $post = get_post($post_id);
+    if (!$post) {
+        return new WP_Error('post_not_found', __('Post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Get enabled languages
+    $enabled_languages = get_option('gaal_translation_enabled_languages', array());
+    if (empty($enabled_languages)) {
+        return new WP_Error('no_languages', __('No languages enabled for translation', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Check if Google Translate API is configured
+    $google_api_key = get_option('gaal_translation_google_api_key', '');
+    if (empty($google_api_key)) {
+        GAAL_Translation_Logger::error('Google Translate API key not configured');
+        return new WP_Error(
+            'api_not_configured',
+            __('Google Translate API key is not configured. Please configure it in Translation Settings.', 'kingdom-training'),
+            array('status' => 400)
+        );
+    }
+    
+    // Create translation job
+    $job = new GAAL_Translation_Job();
+    $job_id = GAAL_Translation_Job::create($post_id, $enabled_languages);
+    
+    if (is_wp_error($job_id)) {
+        return $job_id;
+    }
+    
+    $job = new GAAL_Translation_Job($job_id);
+    $job->set_status(GAAL_Translation_Job::STATUS_IN_PROGRESS);
+    
+    // Start background processing
+    $engine = new GAAL_Translation_Engine();
+    $result = $engine->translate_all_languages($post_id, $job);
+    
+    if (is_wp_error($result)) {
+        $error_data = $result->get_error_data();
+        $error_message = $result->get_error_message();
+        
+        // Include detailed error information if available
+        if (isset($error_data['errors']) && is_array($error_data['errors'])) {
+            $error_message .= ': ' . implode(', ', $error_data['errors']);
+        }
+        
+        GAAL_Translation_Logger::error('Translation job failed', array(
+            'post_id' => $post_id,
+            'error_code' => $result->get_error_code(),
+            'error_message' => $error_message,
+            'error_data' => $error_data,
+        ));
+        
+        $job->fail($error_message);
+        
+        return new WP_Error(
+            $result->get_error_code(),
+            $error_message,
+            array('status' => 500, 'errors' => isset($error_data['errors']) ? $error_data['errors'] : array())
+        );
+    }
+    
+    // Check if there were any errors in the result
+    if (isset($result['errors']) && !empty($result['errors']) && empty($result['translations'])) {
+        $error_message = __('All translations failed', 'kingdom-training');
+        if (is_array($result['errors'])) {
+            $error_message .= ': ' . implode(', ', array_values($result['errors']));
+        }
+        
+        GAAL_Translation_Logger::error('All translations failed', array(
+            'post_id' => $post_id,
+            'errors' => $result['errors'],
+        ));
+        
+        $job->fail($error_message);
+        
+        return new WP_Error(
+            'translation_failed',
+            $error_message,
+            array('status' => 500, 'errors' => $result['errors'])
+        );
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'job_id' => $job_id,
+        'message' => __('Translation job completed', 'kingdom-training'),
+        'result' => $result,
+    ), 200);
+}
+
+/**
+ * Translate to a single language
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_translate_single($request) {
+    // Debug: Log to PHP error log
+    error_log('=== GAAL Translate Single Endpoint Called ===');
+    error_log('Request method: ' . $request->get_method());
+    error_log('Request body: ' . $request->get_body());
+    error_log('All params: ' . print_r($request->get_params(), true));
+    
+    // Get all possible parameter sources
+    $all_params = $request->get_params();
+    $body_params = $request->get_body_params(); // Form data
+    $json_params = $request->get_json_params(); // JSON data
+    $query_params = $request->get_query_params(); // URL query string
+    
+    error_log('Body params: ' . print_r($body_params, true));
+    error_log('JSON params: ' . print_r($json_params, true));
+    error_log('Query params: ' . print_r($query_params, true));
+    
+    // Try to get post_id from various sources
+    $post_id = null;
+    if (!empty($all_params['post_id'])) {
+        $post_id = $all_params['post_id'];
+    } elseif (!empty($body_params['post_id'])) {
+        $post_id = $body_params['post_id'];
+    } elseif (!empty($json_params['post_id'])) {
+        $post_id = $json_params['post_id'];
+    } elseif (!empty($query_params['post_id'])) {
+        $post_id = $query_params['post_id'];
+    }
+    
+    // Try to get target_language from various sources
+    $target_language = null;
+    if (!empty($all_params['target_language'])) {
+        $target_language = $all_params['target_language'];
+    } elseif (!empty($body_params['target_language'])) {
+        $target_language = $body_params['target_language'];
+    } elseif (!empty($json_params['target_language'])) {
+        $target_language = $json_params['target_language'];
+    } elseif (!empty($query_params['target_language'])) {
+        $target_language = $query_params['target_language'];
+    }
+    
+    error_log('Extracted post_id: ' . print_r($post_id, true));
+    error_log('Extracted target_language: ' . print_r($target_language, true));
+    
+    // Sanitize post_id - convert to integer
+    if ($post_id !== null) {
+        $post_id = absint($post_id);
+    }
+    
+    // Sanitize target_language - trim whitespace
+    if ($target_language !== null) {
+        $target_language = sanitize_text_field(trim($target_language));
+    }
+    
+    error_log('Sanitized post_id: ' . $post_id);
+    error_log('Sanitized target_language: ' . $target_language);
+    
+    // Validate required parameters
+    if (empty($post_id) || $post_id <= 0) {
+        error_log('ERROR: Missing or invalid post_id');
+        return new WP_Error(
+            'missing_post_id', 
+            'Post ID is required. Received: ' . print_r($request->get_params(), true), 
+            array('status' => 400)
+        );
+    }
+    
+    if (empty($target_language)) {
+        error_log('ERROR: Missing target_language');
+        return new WP_Error(
+            'missing_target_language', 
+            'Target language is required. Received: ' . print_r($request->get_params(), true), 
+            array('status' => 400)
+        );
+    }
+    
+    // Verify post exists
+    $post = get_post($post_id);
+    if (!$post) {
+        error_log('ERROR: Post not found: ' . $post_id);
+        return new WP_Error('post_not_found', 'Post not found: ' . $post_id, array('status' => 404));
+    }
+    
+    error_log('Post found: ' . $post->post_title);
+    
+    // Perform translation
+    try {
+        $engine = new GAAL_Translation_Engine();
+        $translated_post_id = $engine->translate_post($post_id, $target_language);
+        
+        if (is_wp_error($translated_post_id)) {
+            error_log('Translation error: ' . $translated_post_id->get_error_message());
+            return $translated_post_id;
+        }
+        
+        error_log('Translation successful: ' . $translated_post_id);
+        
+        return new WP_REST_Response(array(
+            'success' => true,
+            'translated_post_id' => $translated_post_id,
+            'target_language' => $target_language,
+            'message' => 'Translation completed',
+        ), 200);
+        
+    } catch (Exception $e) {
+        error_log('Translation exception: ' . $e->getMessage());
+        return new WP_Error('translation_error', $e->getMessage(), array('status' => 500));
+    }
+}
+
+/**
+ * Re-translate an existing post
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_retranslate($request) {
+    $post_id = $request->get_param('post_id');
+    $target_language = $request->get_param('target_language');
+    
+    if (empty($post_id)) {
+        return new WP_Error('missing_post_id', __('Post ID is required', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Verify post exists
+    $post = get_post($post_id);
+    if (!$post) {
+        return new WP_Error('post_not_found', __('Post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Perform re-translation
+    $engine = new GAAL_Translation_Engine();
+    $translated_post_id = $engine->retranslate_post($post_id, $target_language);
+    
+    if (is_wp_error($translated_post_id)) {
+        return $translated_post_id;
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'translated_post_id' => $translated_post_id,
+        'message' => __('Re-translation completed', 'kingdom-training'),
+    ), 200);
+}
+
+/**
+ * Get translation status for a post
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_get_translation_status($request) {
+    $post_id = $request->get_param('post_id');
+    
+    // Get available languages
+    $enabled_languages = get_option('gaal_translation_enabled_languages', array());
+    
+    // Get source language
+    $source_language = 'en';
+    if (function_exists('pll_get_post_language')) {
+        $source_language = pll_get_post_language($post_id, 'slug') ?: 'en';
+    }
+    
+    // Get translations
+    $translations = array();
+    if (function_exists('pll_get_post_translations')) {
+        $post_translations = pll_get_post_translations($post_id);
+        if ($post_translations) {
+            foreach ($post_translations as $lang => $trans_id) {
+                if ($lang !== $source_language) {
+                    $trans_post = get_post($trans_id);
+                    $translations[$lang] = array(
+                        'post_id' => $trans_id,
+                        'status' => $trans_post ? $trans_post->post_status : 'missing',
+                        'title' => $trans_post ? $trans_post->post_title : '',
+                    );
+                }
+            }
+        }
+    }
+    
+    // Build status for each enabled language
+    $status = array();
+    foreach ($enabled_languages as $lang) {
+        if ($lang === $source_language) {
+            continue;
+        }
+        
+        $status[$lang] = array(
+            'language' => $lang,
+            'exists' => isset($translations[$lang]),
+            'post_id' => isset($translations[$lang]) ? $translations[$lang]['post_id'] : null,
+            'post_status' => isset($translations[$lang]) ? $translations[$lang]['status'] : null,
+        );
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'source_post_id' => $post_id,
+        'source_language' => $source_language,
+        'translations' => $status,
+    ), 200);
+}
+
+/**
+ * Resume an interrupted translation job
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_resume_job($request) {
+    $job_id = $request->get_param('job_id');
+    
+    if (empty($job_id)) {
+        return new WP_Error('missing_job_id', __('Job ID is required', 'kingdom-training'), array('status' => 400));
+    }
+    
+    $job = new GAAL_Translation_Job($job_id);
+    
+    if (!$job->get_id()) {
+        return new WP_Error('job_not_found', __('Translation job not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Resume job
+    if (!$job->resume()) {
+        return new WP_Error('cannot_resume', __('Job cannot be resumed', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Get remaining languages
+    $remaining_languages = $job->get_remaining_languages();
+    $source_post_id = $job->get_source_post_id();
+    
+    if (empty($remaining_languages) || empty($source_post_id)) {
+        return new WP_Error('nothing_to_resume', __('No remaining languages to translate', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Continue translation
+    $engine = new GAAL_Translation_Engine();
+    $result = $engine->translate_all_languages($source_post_id, $job);
+    
+    if (is_wp_error($result)) {
+        return $result;
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'job_id' => $job_id,
+        'message' => __('Job resumed', 'kingdom-training'),
+        'result' => $result,
+    ), 200);
+}
+
+// AJAX handlers for background processing
+function gaal_ajax_process_translation() {
+    check_ajax_referer('gaal_translation_nonce', 'nonce');
+    
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array('message' => __('Permission denied', 'kingdom-training')));
+    }
+    
+    $job_id = isset($_POST['job_id']) ? intval($_POST['job_id']) : 0;
+    
+    if (empty($job_id)) {
+        wp_send_json_error(array('message' => __('Job ID is required', 'kingdom-training')));
+    }
+    
+    $job = new GAAL_Translation_Job($job_id);
+    
+    if (!$job->get_id()) {
+        wp_send_json_error(array('message' => __('Job not found', 'kingdom-training')));
+    }
+    
+    // Get remaining languages
+    $remaining_languages = $job->get_remaining_languages();
+    
+    if (empty($remaining_languages)) {
+        $job->complete();
+        wp_send_json_success(array(
+            'message' => __('All translations completed', 'kingdom-training'),
+            'completed' => true,
+        ));
+    }
+    
+    // Process next language
+    $source_post_id = $job->get_source_post_id();
+    $next_language = array_shift($remaining_languages);
+    
+    $job->update_language_progress($next_language, 'in_progress');
+    
+    $engine = new GAAL_Translation_Engine();
+    $result = $engine->translate_post($source_post_id, $next_language);
+    
+    if (is_wp_error($result)) {
+        $job->update_language_progress($next_language, 'failed', $result->get_error_message());
+        wp_send_json_error(array(
+            'message' => $result->get_error_message(),
+            'language' => $next_language,
+        ));
+    }
+    
+    $job->update_language_progress($next_language, 'completed');
+    
+    // Check if job is complete
+    $remaining = $job->get_remaining_languages();
+    if (empty($remaining)) {
+        $job->complete();
+    }
+    
+    wp_send_json_success(array(
+        'message' => sprintf(__('Translation completed for %s', 'kingdom-training'), $next_language),
+        'language' => $next_language,
+        'completed' => empty($remaining),
+        'progress' => $job->get_progress(),
+    ));
+}
+add_action('wp_ajax_gaal_process_translation', 'gaal_ajax_process_translation');
+
+/**
+ * AJAX handler for testing API connections
+ */
+function gaal_ajax_test_api_connection() {
+    check_ajax_referer('gaal_test_api_connection', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => __('Permission denied', 'kingdom-training')));
+    }
+    
+    $api_type = isset($_POST['api_type']) ? sanitize_text_field($_POST['api_type']) : '';
+    
+    if (empty($api_type)) {
+        wp_send_json_error(array('message' => __('API type is required', 'kingdom-training')));
+    }
+    
+    if ($api_type === 'google_translate') {
+        // Test Google Translate API
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+        
+        if (empty($api_key)) {
+            wp_send_json_error(array('message' => __('API key is required', 'kingdom-training')));
+        }
+        
+        // Create Google Translate API instance
+        $google_translate = new GAAL_Google_Translate_API($api_key);
+        
+        // Test with a simple translation
+        $test_text = 'Hello';
+        $result = $google_translate->translate($test_text, 'es', 'en');
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        wp_send_json_success(array(
+            'message' => __('Google Translate API connection successful', 'kingdom-training'),
+            'test_translation' => $result,
+        ));
+        
+    } elseif ($api_type === 'llm') {
+        // Test LLM API
+        $endpoint = isset($_POST['endpoint']) ? esc_url_raw($_POST['endpoint']) : '';
+        $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+        $model = isset($_POST['model']) ? sanitize_text_field($_POST['model']) : '';
+        
+        if (empty($endpoint)) {
+            wp_send_json_error(array('message' => __('Endpoint URL is required', 'kingdom-training')));
+        }
+        
+        if (empty($api_key)) {
+            wp_send_json_error(array('message' => __('API key is required', 'kingdom-training')));
+        }
+        
+        if (empty($model)) {
+            wp_send_json_error(array('message' => __('Model name is required', 'kingdom-training')));
+        }
+        
+        // Detect provider from endpoint
+        $provider = 'custom';
+        if (strpos($endpoint, 'openai.com') !== false) {
+            $provider = 'openai';
+        } elseif (strpos($endpoint, 'anthropic.com') !== false) {
+            $provider = 'anthropic';
+        } elseif (strpos($endpoint, 'generativelanguage.googleapis.com') !== false) {
+            $provider = 'gemini';
+        } elseif (strpos($endpoint, 'openrouter.ai') !== false) {
+            $provider = 'openrouter';
+        }
+        
+        // Create LLM API instance
+        $llm_api = new GAAL_LLM_API($endpoint, $api_key, $model, $provider);
+        
+        // Test connection
+        $result = $llm_api->test_connection();
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        wp_send_json_success(array(
+            'message' => __('LLM API connection successful', 'kingdom-training'),
+            'test_response' => substr($result, 0, 100), // First 100 chars of response
+        ));
+    } else {
+        wp_send_json_error(array('message' => __('Invalid API type', 'kingdom-training')));
+    }
+}
+add_action('wp_ajax_gaal_test_api_connection', 'gaal_ajax_test_api_connection');
+
+// ============================================================================
+// WP-CLI COMMANDS
+// ============================================================================
+
+/**
+ * Register WP-CLI command for testing Google Translate API
+ */
+if (defined('WP_CLI') && WP_CLI) {
+    require_once get_template_directory() . '/cli/test-google-translate.php';
+}
 
 
