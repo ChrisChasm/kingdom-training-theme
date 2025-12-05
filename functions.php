@@ -2057,7 +2057,7 @@ function gaal_register_translation_api() {
         'permission_callback' => '__return_true', // No auth required for testing
     ));
     
-    // Test Google Translate API configuration
+    // Test Google Translate API configuration (public for debugging)
     register_rest_route('gaal/v1', '/translate/test-google', array(
         'methods' => 'GET',
         'callback' => function($request) {
@@ -2068,31 +2068,40 @@ function gaal_register_translation_api() {
                     'success' => false,
                     'error' => 'Google Translate API key is not configured',
                     'api_key_status' => 'empty',
+                    'hint' => 'Set the API key in WordPress Admin > Settings > Translation Automation',
                 ), 200);
             }
             
             // Test the API
-            $google_translate = new GAAL_Google_Translate_API($google_api_key);
-            $result = $google_translate->test_connection();
-            
-            if (is_wp_error($result)) {
+            try {
+                $google_translate = new GAAL_Google_Translate_API($google_api_key);
+                $result = $google_translate->test_connection();
+                
+                if (is_wp_error($result)) {
+                    return new WP_REST_Response(array(
+                        'success' => false,
+                        'error' => $result->get_error_message(),
+                        'error_code' => $result->get_error_code(),
+                        'error_data' => $result->get_error_data(),
+                        'api_key_preview' => substr($google_api_key, 0, 8) . '...',
+                        'api_key_length' => strlen($google_api_key),
+                    ), 200);
+                }
+                
+                return new WP_REST_Response(array(
+                    'success' => true,
+                    'message' => 'Google Translate API is working',
+                    'test_result' => $result,
+                ), 200);
+            } catch (Exception $e) {
                 return new WP_REST_Response(array(
                     'success' => false,
-                    'error' => $result->get_error_message(),
-                    'error_code' => $result->get_error_code(),
-                    'error_data' => $result->get_error_data(),
+                    'error' => 'Exception: ' . $e->getMessage(),
                     'api_key_preview' => substr($google_api_key, 0, 8) . '...',
-                    'api_key_length' => strlen($google_api_key),
                 ), 200);
             }
-            
-            return new WP_REST_Response(array(
-                'success' => true,
-                'message' => 'Google Translate API is working',
-                'test_result' => $result,
-            ), 200);
         },
-        'permission_callback' => 'gaal_check_translation_permissions',
+        'permission_callback' => '__return_true', // Public for debugging
     ));
     
     // Translate single language endpoint
