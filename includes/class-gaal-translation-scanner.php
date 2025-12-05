@@ -165,5 +165,118 @@ if (!class_exists('GAAL_Translation_Scanner')) {
             }
             return $result;
         }
+        
+        /**
+         * Find all existing translations (non-English posts that are translations)
+         * 
+         * @param array $filters Optional filters (post_type, language, status)
+         * @return array Existing translations
+         */
+        public function find_existing_translations($filters = array()) {
+            $enabled_languages = get_option('gaal_translation_enabled_languages', array());
+            $target_languages = array_diff($enabled_languages, array('en'));
+            
+            if (empty($target_languages)) {
+                return array();
+            }
+            
+            // Apply language filter if specified
+            if (!empty($filters['language'])) {
+                $target_languages = array_intersect($target_languages, (array) $filters['language']);
+            }
+            
+            $translations = array();
+            
+            foreach ($target_languages as $lang) {
+                // Build query args for this language
+                $args = array(
+                    'post_type' => isset($filters['post_type']) && !empty($filters['post_type']) ? $filters['post_type'] : $this->post_types,
+                    'post_status' => isset($filters['status']) && !empty($filters['status']) ? $filters['status'] : array('publish', 'draft', 'pending'),
+                    'posts_per_page' => -1,
+                    'lang' => $lang,
+                );
+                
+                $posts = get_posts($args);
+                
+                foreach ($posts as $post) {
+                    // Get the source (English) post
+                    $source_post_id = null;
+                    $source_post = null;
+                    
+                    if (function_exists('pll_get_post_translations')) {
+                        $post_translations = pll_get_post_translations($post->ID);
+                        if (isset($post_translations['en'])) {
+                            $source_post_id = $post_translations['en'];
+                            $source_post = get_post($source_post_id);
+                        }
+                    }
+                    
+                    $post_type_obj = get_post_type_object($post->post_type);
+                    
+                    // Get translation metadata
+                    $translated_at = get_post_meta($post->ID, '_gaal_translated_at', true);
+                    $evaluation = get_post_meta($post->ID, '_gaal_evaluation', true);
+                    
+                    $translations[] = array(
+                        'id' => $post->ID,
+                        'title' => $post->post_title,
+                        'post_type' => $post->post_type,
+                        'post_type_label' => $post_type_obj ? $post_type_obj->labels->singular_name : $post->post_type,
+                        'status' => $post->post_status,
+                        'language' => $lang,
+                        'edit_link' => get_edit_post_link($post->ID, 'raw'),
+                        'view_link' => get_permalink($post->ID),
+                        'source_post_id' => $source_post_id,
+                        'source_title' => $source_post ? $source_post->post_title : null,
+                        'source_edit_link' => $source_post_id ? get_edit_post_link($source_post_id, 'raw') : null,
+                        'translated_at' => $translated_at,
+                        'modified_date' => $post->post_modified,
+                        'content_length' => strlen($post->post_content),
+                        'evaluation' => $evaluation ? $evaluation : null,
+                    );
+                }
+            }
+            
+            // Sort by modified date descending
+            usort($translations, function($a, $b) {
+                return strtotime($b['modified_date']) - strtotime($a['modified_date']);
+            });
+            
+            return $translations;
+        }
+        
+        /**
+         * Get summary of existing translations
+         * 
+         * @return array Summary data
+         */
+        public function get_translations_summary() {
+            $translations = $this->find_existing_translations();
+            
+            $by_language = array();
+            $by_status = array();
+            $by_post_type = array();
+            
+            foreach ($translations as $t) {
+                // By language
+                $lang = $t['language'];
+                $by_language[$lang] = isset($by_language[$lang]) ? $by_language[$lang] + 1 : 1;
+                
+                // By status
+                $status = $t['status'];
+                $by_status[$status] = isset($by_status[$status]) ? $by_status[$status] + 1 : 1;
+                
+                // By post type
+                $pt = $t['post_type'];
+                $by_post_type[$pt] = isset($by_post_type[$pt]) ? $by_post_type[$pt] + 1 : 1;
+            }
+            
+            return array(
+                'total' => count($translations),
+                'by_language' => $by_language,
+                'by_status' => $by_status,
+                'by_post_type' => $by_post_type,
+            );
+        }
     }
 }

@@ -196,31 +196,100 @@ if (!class_exists('GAAL_LLM_API')) {
          * @return array|WP_Error Evaluation result with score and feedback
          */
         public function evaluate_translation($original_text, $translated_text, $target_language) {
+            $language_names = array(
+                'ar' => 'Arabic',
+                'es' => 'Spanish',
+                'fr' => 'French',
+                'de' => 'German',
+                'pt' => 'Portuguese',
+                'zh' => 'Chinese',
+                'ja' => 'Japanese',
+                'ko' => 'Korean',
+                'ru' => 'Russian',
+                'hi' => 'Hindi',
+                'bn' => 'Bengali',
+                'id' => 'Indonesian',
+                'sw' => 'Swahili',
+            );
+            $lang_name = isset($language_names[$target_language]) ? $language_names[$target_language] : $target_language;
+            
             $messages = array(
                 array(
                     'role' => 'system',
-                    'content' => 'You are a translation quality evaluator. Evaluate the quality of a translation and provide a score from 0-100 and brief feedback.',
+                    'content' => 'You are an expert translation quality evaluator specializing in religious and ministry content. You evaluate translations for accuracy, naturalness, cultural appropriateness, and preservation of meaning. Always respond with valid JSON.',
                 ),
                 array(
                     'role' => 'user',
                     'content' => sprintf(
-                        "Original text (English):\n%s\n\nTranslated text (%s):\n%s\n\nEvaluate the translation quality. Provide a JSON response with 'score' (0-100) and 'feedback' (brief explanation).",
+                        'Evaluate this translation from English to %s.
+
+ORIGINAL ENGLISH TEXT:
+"""%s"""
+
+TRANSLATED %s TEXT:
+"""%s"""
+
+Analyze the translation quality and provide a detailed evaluation. Consider:
+1. ACCURACY: Does the translation convey the same meaning as the original?
+2. NATURALNESS: Does it read naturally to native %s speakers?
+3. GRAMMAR: Are there grammatical errors or awkward constructions?
+4. TERMINOLOGY: Is religious/ministry terminology translated appropriately?
+5. CULTURAL FIT: Is the translation culturally appropriate for the target audience?
+
+Respond with ONLY valid JSON in this exact format:
+{
+  "score": <number 0-100>,
+  "summary": "<one sentence overall assessment>",
+  "issues": [
+    "<specific issue 1>",
+    "<specific issue 2>"
+  ],
+  "improvements": [
+    "<what LLM improvement would fix 1>",
+    "<what LLM improvement would fix 2>"
+  ],
+  "feedback": "<detailed paragraph explaining the score and what changes would be made if improved>"
+}',
+                        $lang_name,
                         $original_text,
-                        $target_language,
-                        $translated_text
+                        strtoupper($lang_name),
+                        $translated_text,
+                        $lang_name
                     ),
                 ),
             );
             
-            $result = $this->chat_completion($messages, array('temperature' => 0.3, 'max_tokens' => 500));
+            $result = $this->chat_completion($messages, array('temperature' => 0.3, 'max_tokens' => 1500));
             
             if (is_wp_error($result)) {
                 return $result;
             }
             
-            // Try to parse JSON response
-            $evaluation = json_decode($result, true);
+            // Try to parse JSON response - handle potential markdown code blocks
+            $json_text = $result;
+            
+            // Remove markdown code blocks if present
+            if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $result, $matches)) {
+                $json_text = $matches[1];
+            }
+            
+            $evaluation = json_decode(trim($json_text), true);
             if (json_last_error() === JSON_ERROR_NONE && isset($evaluation['score'])) {
+                // Ensure feedback is a string
+                if (!isset($evaluation['feedback']) || empty($evaluation['feedback'])) {
+                    // Build feedback from other fields if not provided
+                    $feedback_parts = array();
+                    if (isset($evaluation['summary'])) {
+                        $feedback_parts[] = $evaluation['summary'];
+                    }
+                    if (isset($evaluation['issues']) && is_array($evaluation['issues']) && count($evaluation['issues']) > 0) {
+                        $feedback_parts[] = "\n\nIssues found:\n• " . implode("\n• ", $evaluation['issues']);
+                    }
+                    if (isset($evaluation['improvements']) && is_array($evaluation['improvements']) && count($evaluation['improvements']) > 0) {
+                        $feedback_parts[] = "\n\nIf improved, the LLM would:\n• " . implode("\n• ", $evaluation['improvements']);
+                    }
+                    $evaluation['feedback'] = implode('', $feedback_parts);
+                }
                 return $evaluation;
             }
             
@@ -228,6 +297,7 @@ if (!class_exists('GAAL_LLM_API')) {
             return array(
                 'score' => 75,
                 'feedback' => $result,
+                'summary' => 'Unable to parse structured evaluation.',
             );
         }
         

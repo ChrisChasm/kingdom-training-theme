@@ -2468,6 +2468,291 @@ function gaal_api_create_translation_drafts($request) {
         ),
     ));
 }
+
+/**
+ * Get existing translations
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response
+ */
+function gaal_api_get_existing_translations($request) {
+    $scanner = new GAAL_Translation_Scanner();
+    
+    $filters = array();
+    if ($request->get_param('post_type')) {
+        $filters['post_type'] = $request->get_param('post_type');
+    }
+    if ($request->get_param('language')) {
+        $filters['language'] = $request->get_param('language');
+    }
+    if ($request->get_param('status')) {
+        $filters['status'] = $request->get_param('status');
+    }
+    
+    return rest_ensure_response(array(
+        'success' => true,
+        'translations' => $scanner->find_existing_translations($filters),
+        'summary' => $scanner->get_translations_summary(),
+    ));
+}
+
+/**
+ * LLM evaluate a translation
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_llm_evaluate($request) {
+    $post_id = $request->get_param('post_id');
+    
+    $post = get_post($post_id);
+    if (!$post) {
+        return new WP_Error('post_not_found', __('Post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Get source post
+    $source_post_id = null;
+    if (function_exists('pll_get_post_translations')) {
+        $translations = pll_get_post_translations($post_id);
+        if (isset($translations['en'])) {
+            $source_post_id = $translations['en'];
+        }
+    }
+    
+    if (!$source_post_id) {
+        return new WP_Error('source_not_found', __('English source post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    $source_post = get_post($source_post_id);
+    if (!$source_post) {
+        return new WP_Error('source_not_found', __('English source post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Get target language
+    $target_language = 'unknown';
+    if (function_exists('pll_get_post_language')) {
+        $target_language = pll_get_post_language($post_id, 'slug');
+    }
+    
+    // Initialize LLM API
+    $llm_endpoint = get_option('gaal_translation_llm_endpoint', '');
+    $llm_api_key = get_option('gaal_translation_llm_api_key', '');
+    $llm_model = get_option('gaal_translation_llm_model', 'gpt-4');
+    $llm_provider = get_option('gaal_translation_llm_provider', 'custom');
+    
+    $llm = new GAAL_LLM_API($llm_endpoint, $llm_api_key, $llm_model, $llm_provider);
+    
+    if (!$llm->is_configured()) {
+        return new WP_Error('llm_not_configured', __('LLM API is not configured. Please configure it in Translation Settings.', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Evaluate title
+    $title_evaluation = $llm->evaluate_translation($source_post->post_title, $post->post_title, $target_language);
+    
+    // Evaluate content (use excerpt or first part of content to avoid token limits)
+    $source_content = wp_strip_all_tags($source_post->post_content);
+    $translated_content = wp_strip_all_tags($post->post_content);
+    
+    // Limit content for evaluation
+    if (strlen($source_content) > 2000) {
+        $source_content = substr($source_content, 0, 2000) . '...';
+    }
+    if (strlen($translated_content) > 2000) {
+        $translated_content = substr($translated_content, 0, 2000) . '...';
+    }
+    
+    $content_evaluation = $llm->evaluate_translation($source_content, $translated_content, $target_language);
+    
+    if (is_wp_error($content_evaluation)) {
+        return $content_evaluation;
+    }
+    
+    // Combine evaluations
+    $title_score = is_wp_error($title_evaluation) ? 0 : (isset($title_evaluation['score']) ? $title_evaluation['score'] : 75);
+    $content_score = isset($content_evaluation['score']) ? $content_evaluation['score'] : 75;
+    $overall_score = round(($title_score * 0.2) + ($content_score * 0.8));
+    
+    $evaluation = array(
+        'score' => $overall_score,
+        'title_score' => $title_score,
+        'content_score' => $content_score,
+        'feedback' => isset($content_evaluation['feedback']) ? $content_evaluation['feedback'] : '',
+        'evaluated_at' => current_time('mysql'),
+    );
+    
+    // Save evaluation to post meta
+    update_post_meta($post_id, '_gaal_evaluation', $evaluation);
+    
+    GAAL_Translation_Logger::info('LLM evaluation completed', array(
+        'post_id' => $post_id,
+        'score' => $overall_score,
+    ));
+    
+    return rest_ensure_response(array(
+        'success' => true,
+        'evaluation' => $evaluation,
+    ));
+}
+
+/**
+ * LLM improve a translation
+ * 
+ * @param WP_REST_Request $request Request object
+ * @return WP_REST_Response|WP_Error
+ */
+function gaal_api_llm_improve($request) {
+    $post_id = $request->get_param('post_id');
+    
+    $post = get_post($post_id);
+    if (!$post) {
+        return new WP_Error('post_not_found', __('Post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Get source post
+    $source_post_id = null;
+    if (function_exists('pll_get_post_translations')) {
+        $translations = pll_get_post_translations($post_id);
+        if (isset($translations['en'])) {
+            $source_post_id = $translations['en'];
+        }
+    }
+    
+    if (!$source_post_id) {
+        return new WP_Error('source_not_found', __('English source post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    $source_post = get_post($source_post_id);
+    if (!$source_post) {
+        return new WP_Error('source_not_found', __('English source post not found', 'kingdom-training'), array('status' => 404));
+    }
+    
+    // Get target language
+    $target_language = 'unknown';
+    if (function_exists('pll_get_post_language')) {
+        $target_language = pll_get_post_language($post_id, 'slug');
+    }
+    
+    // Initialize LLM API
+    $llm_endpoint = get_option('gaal_translation_llm_endpoint', '');
+    $llm_api_key = get_option('gaal_translation_llm_api_key', '');
+    $llm_model = get_option('gaal_translation_llm_model', 'gpt-4');
+    $llm_provider = get_option('gaal_translation_llm_provider', 'custom');
+    
+    $llm = new GAAL_LLM_API($llm_endpoint, $llm_api_key, $llm_model, $llm_provider);
+    
+    if (!$llm->is_configured()) {
+        return new WP_Error('llm_not_configured', __('LLM API is not configured. Please configure it in Translation Settings.', 'kingdom-training'), array('status' => 400));
+    }
+    
+    // Improve title
+    $improved_title = $llm->improve_translation($source_post->post_title, $post->post_title, $target_language);
+    if (is_wp_error($improved_title)) {
+        $improved_title = $post->post_title; // Keep original on error
+    }
+    
+    // Improve content (chunk if necessary)
+    $source_content = $source_post->post_content;
+    $translated_content = $post->post_content;
+    
+    // For large content, we'd need to chunk - for now, limit and warn
+    if (strlen($translated_content) > 8000) {
+        return new WP_Error('content_too_large', __('Content is too large for LLM improvement. Please use re-translation instead.', 'kingdom-training'), array('status' => 400));
+    }
+    
+    $improved_content = $llm->improve_translation($source_content, $translated_content, $target_language);
+    if (is_wp_error($improved_content)) {
+        return $improved_content;
+    }
+    
+    // Update the post
+    $update_result = wp_update_post(array(
+        'ID' => $post_id,
+        'post_title' => $improved_title,
+        'post_content' => $improved_content,
+    ));
+    
+    if (is_wp_error($update_result)) {
+        return $update_result;
+    }
+    
+    // Update meta
+    update_post_meta($post_id, '_gaal_llm_improved_at', current_time('mysql'));
+    delete_post_meta($post_id, '_gaal_evaluation'); // Clear old evaluation
+    
+    GAAL_Translation_Logger::info('LLM improvement applied', array(
+        'post_id' => $post_id,
+        'target_language' => $target_language,
+    ));
+    
+    return rest_ensure_response(array(
+        'success' => true,
+        'message' => __('Translation improved successfully', 'kingdom-training'),
+        'post_id' => $post_id,
+    ));
+}
+
+// Register new translation dashboard endpoints
+function gaal_register_translation_dashboard_api() {
+    // Get existing translations
+    register_rest_route('gaal/v1', '/translate/existing', array(
+        'methods' => 'GET',
+        'callback' => 'gaal_api_get_existing_translations',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'args' => array(
+            'post_type' => array(
+                'type' => 'string',
+                'default' => '',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+            'language' => array(
+                'type' => 'string',
+                'default' => '',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+            'status' => array(
+                'type' => 'string',
+                'default' => '',
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ));
+    
+    // LLM evaluate translation
+    register_rest_route('gaal/v1', '/translate/llm-evaluate', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_llm_evaluate',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'args' => array(
+            'post_id' => array(
+                'required' => true,
+                'type' => 'integer',
+                'sanitize_callback' => 'absint',
+            ),
+        ),
+    ));
+    
+    // LLM improve translation
+    register_rest_route('gaal/v1', '/translate/llm-improve', array(
+        'methods' => 'POST',
+        'callback' => 'gaal_api_llm_improve',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'args' => array(
+            'post_id' => array(
+                'required' => true,
+                'type' => 'integer',
+                'sanitize_callback' => 'absint',
+            ),
+        ),
+    ));
+}
+add_action('rest_api_init', 'gaal_register_translation_dashboard_api');
+
 add_action('rest_api_init', 'gaal_register_translation_api');
 
 /**

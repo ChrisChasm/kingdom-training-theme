@@ -171,7 +171,10 @@ if (!class_exists('GAAL_Translation_Dashboard')) {
 }
 
 // Initialize the dashboard
+// Use 'init' hook since theme files load after 'plugins_loaded'
 function gaal_init_translation_dashboard() {
-    GAAL_Translation_Dashboard::get_instance();
+    if (is_admin()) {
+        GAAL_Translation_Dashboard::get_instance();
+    }
 }
-add_action('plugins_loaded', 'gaal_init_translation_dashboard');
+add_action('init', 'gaal_init_translation_dashboard');

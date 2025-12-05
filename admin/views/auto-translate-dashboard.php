@@ -33,6 +33,10 @@ $languages = $dashboard->get_enabled_languages_data();
             <span class="dashicons dashicons-warning"></span>
             <?php echo esc_html__('Translation Gaps', 'kingdom-training'); ?>
         </a>
+        <a href="#translations" class="nav-tab" data-tab="translations">
+            <span class="dashicons dashicons-admin-site-alt3"></span>
+            <?php echo esc_html__('Translations', 'kingdom-training'); ?>
+        </a>
         <a href="#queue" class="nav-tab" data-tab="queue">
             <span class="dashicons dashicons-clock"></span>
             <?php echo esc_html__('Queue', 'kingdom-training'); ?>
@@ -242,6 +246,126 @@ $languages = $dashboard->get_enabled_languages_data();
             <div class="gaal-no-gaps" id="no-gaps-message" style="display: none;">
                 <span class="dashicons dashicons-yes-alt"></span>
                 <p><?php echo esc_html__('No translation gaps found! All content is translated.', 'kingdom-training'); ?></p>
+            </div>
+        </div>
+        
+        <!-- Translations Tab -->
+        <div id="translations" class="tab-pane">
+            <!-- Filters -->
+            <div class="gaal-filters">
+                <select id="translations-filter-post-type">
+                    <option value=""><?php echo esc_html__('All Post Types', 'kingdom-training'); ?></option>
+                    <?php foreach ($post_types as $pt_slug => $pt_label): ?>
+                        <option value="<?php echo esc_attr($pt_slug); ?>"><?php echo esc_html($pt_label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select id="translations-filter-language">
+                    <option value=""><?php echo esc_html__('All Languages', 'kingdom-training'); ?></option>
+                    <?php foreach ($languages as $lang_code => $lang_data): ?>
+                        <?php if ($lang_code !== 'en'): ?>
+                            <option value="<?php echo esc_attr($lang_code); ?>"><?php echo esc_html($lang_data['name']); ?></option>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select id="translations-filter-status">
+                    <option value=""><?php echo esc_html__('All Statuses', 'kingdom-training'); ?></option>
+                    <option value="publish"><?php echo esc_html__('Published', 'kingdom-training'); ?></option>
+                    <option value="draft"><?php echo esc_html__('Draft', 'kingdom-training'); ?></option>
+                    <option value="pending"><?php echo esc_html__('Pending', 'kingdom-training'); ?></option>
+                </select>
+                
+                <button type="button" class="button" id="btn-load-translations">
+                    <span class="dashicons dashicons-update"></span>
+                    <?php echo esc_html__('Load Translations', 'kingdom-training'); ?>
+                </button>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div class="gaal-bulk-actions">
+                <label class="gaal-select-all-label">
+                    <input type="checkbox" id="select-all-translations">
+                    <?php echo esc_html__('Select All', 'kingdom-training'); ?>
+                </label>
+                <span class="gaal-selected-count" id="translations-selected-count">0 <?php echo esc_html__('selected', 'kingdom-training'); ?></span>
+                <button type="button" class="button" id="btn-retranslate-selected" disabled>
+                    <span class="dashicons dashicons-update"></span>
+                    <?php echo esc_html__('Re-translate Selected', 'kingdom-training'); ?>
+                </button>
+                <button type="button" class="button button-secondary" id="btn-llm-review-selected" disabled>
+                    <span class="dashicons dashicons-welcome-learn-more"></span>
+                    <?php echo esc_html__('LLM Review Selected', 'kingdom-training'); ?>
+                </button>
+            </div>
+            
+            <!-- Translations Table -->
+            <table class="wp-list-table widefat fixed striped" id="translations-table">
+                <thead>
+                    <tr>
+                        <th class="check-column"><input type="checkbox" id="select-all-translations-header"></th>
+                        <th class="column-title"><?php echo esc_html__('Title', 'kingdom-training'); ?></th>
+                        <th class="column-source"><?php echo esc_html__('Source (EN)', 'kingdom-training'); ?></th>
+                        <th class="column-language"><?php echo esc_html__('Language', 'kingdom-training'); ?></th>
+                        <th class="column-type"><?php echo esc_html__('Type', 'kingdom-training'); ?></th>
+                        <th class="column-status"><?php echo esc_html__('Status', 'kingdom-training'); ?></th>
+                        <th class="column-score"><?php echo esc_html__('LLM Score', 'kingdom-training'); ?></th>
+                        <th class="column-actions"><?php echo esc_html__('Actions', 'kingdom-training'); ?></th>
+                    </tr>
+                </thead>
+                <tbody id="translations-tbody">
+                    <tr class="gaal-loading-row">
+                        <td colspan="8">
+                            <span class="spinner is-active"></span>
+                            <?php echo esc_html__('Click "Load Translations" to view existing translations...', 'kingdom-training'); ?>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="gaal-no-translations" id="no-translations-message" style="display: none;">
+                <span class="dashicons dashicons-info"></span>
+                <p><?php echo esc_html__('No translations found matching your filters.', 'kingdom-training'); ?></p>
+            </div>
+        </div>
+        
+        <!-- LLM Review Modal -->
+        <div id="llm-review-modal" class="gaal-modal" style="display: none;">
+            <div class="gaal-modal-content">
+                <div class="gaal-modal-header">
+                    <h2><?php echo esc_html__('LLM Translation Review', 'kingdom-training'); ?></h2>
+                    <button type="button" class="gaal-modal-close">&times;</button>
+                </div>
+                <div class="gaal-modal-body">
+                    <div class="gaal-review-info">
+                        <p><strong><?php echo esc_html__('Post:', 'kingdom-training'); ?></strong> <span id="review-post-title"></span></p>
+                        <p><strong><?php echo esc_html__('Language:', 'kingdom-training'); ?></strong> <span id="review-language"></span></p>
+                    </div>
+                    <div class="gaal-review-progress" id="review-progress" style="display: none;">
+                        <span class="spinner is-active"></span>
+                        <span id="review-progress-text"><?php echo esc_html__('Evaluating translation...', 'kingdom-training'); ?></span>
+                    </div>
+                    <div class="gaal-review-result" id="review-result" style="display: none;">
+                        <div class="gaal-review-score">
+                            <span class="score-label"><?php echo esc_html__('Quality Score:', 'kingdom-training'); ?></span>
+                            <span class="score-value" id="review-score">--</span>
+                            <span class="score-max">/100</span>
+                        </div>
+                        <div class="gaal-review-feedback">
+                            <h4><?php echo esc_html__('Evaluation Details', 'kingdom-training'); ?></h4>
+                            <div id="review-feedback"></div>
+                        </div>
+                        <div class="gaal-review-actions">
+                            <button type="button" class="button button-primary" id="btn-apply-improvement">
+                                <span class="dashicons dashicons-yes"></span>
+                                <?php echo esc_html__('Apply LLM Improvement', 'kingdom-training'); ?>
+                            </button>
+                            <button type="button" class="button" id="btn-close-review">
+                                <?php echo esc_html__('Close', 'kingdom-training'); ?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         

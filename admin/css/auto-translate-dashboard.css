@@ -457,6 +457,296 @@
     height: 14px;
 }
 
+/* Translations Table */
+#translations-table .column-title {
+    width: 20%;
+}
+
+#translations-table .column-source {
+    width: 18%;
+}
+
+#translations-table .column-language {
+    width: 10%;
+}
+
+#translations-table .column-type {
+    width: 10%;
+}
+
+#translations-table .column-status {
+    width: 10%;
+}
+
+#translations-table .column-score {
+    width: 10%;
+    text-align: center;
+}
+
+#translations-table .column-actions {
+    width: 17%;
+    text-align: center;
+}
+
+.gaal-no-translations {
+    text-align: center;
+    padding: 40px;
+    color: #646970;
+}
+
+.gaal-no-translations .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    display: block;
+    margin: 0 auto 15px;
+}
+
+/* LLM Score Badge */
+.llm-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.llm-score.score-high {
+    background: #edfaef;
+    color: #1e4620;
+}
+
+.llm-score.score-medium {
+    background: #fff8e5;
+    color: #6e4e00;
+}
+
+.llm-score.score-low {
+    background: #fcf0f1;
+    color: #8a2424;
+}
+
+.llm-score.score-none {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.status-badge.status-publish {
+    background: #edfaef;
+    color: #1e4620;
+}
+
+.status-badge.status-draft {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+.status-badge.status-pending {
+    background: #fff8e5;
+    color: #6e4e00;
+}
+
+/* Modal Styles */
+.gaal-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gaal-modal-content {
+    background: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+}
+
+.gaal-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.gaal-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.gaal-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #646970;
+    padding: 0;
+    line-height: 1;
+}
+
+.gaal-modal-close:hover {
+    color: #d63638;
+}
+
+.gaal-modal-body {
+    padding: 20px;
+}
+
+.gaal-review-info {
+    background: #f6f7f7;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.gaal-review-info p {
+    margin: 5px 0;
+}
+
+.gaal-review-progress {
+    text-align: center;
+    padding: 30px;
+}
+
+.gaal-review-progress .spinner {
+    float: none;
+    margin: 0 10px 0 0;
+}
+
+.gaal-review-score {
+    text-align: center;
+    padding: 20px;
+    background: #f6f7f7;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.gaal-review-score .score-label {
+    display: block;
+    font-size: 14px;
+    color: #646970;
+    margin-bottom: 5px;
+}
+
+.gaal-review-score .score-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: #2271b1;
+}
+
+.gaal-review-score .score-max {
+    font-size: 24px;
+    color: #646970;
+}
+
+.gaal-review-feedback {
+    margin-bottom: 20px;
+}
+
+.gaal-review-feedback h4 {
+    margin: 0 0 10px 0;
+}
+
+.gaal-review-feedback #review-feedback {
+    background: #f6f7f7;
+    padding: 15px;
+    border-radius: 4px;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.gaal-review-feedback #review-feedback p {
+    margin: 0 0 12px 0;
+}
+
+.gaal-review-feedback #review-feedback p:last-child {
+    margin-bottom: 0;
+}
+
+.gaal-review-feedback .review-section {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.gaal-review-feedback .review-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.gaal-review-feedback .review-section h5 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.gaal-review-feedback .review-section ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.gaal-review-feedback .review-section li {
+    margin-bottom: 6px;
+    color: #50575e;
+}
+
+.gaal-review-feedback .review-section li:last-child {
+    margin-bottom: 0;
+}
+
+/* Score value colors */
+.gaal-review-score .score-value.score-high {
+    color: #00a32a;
+}
+
+.gaal-review-score .score-value.score-medium {
+    color: #dba617;
+}
+
+.gaal-review-score .score-value.score-low {
+    color: #d63638;
+}
+
+.gaal-review-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 15px;
+    border-top: 1px solid #dcdcde;
+}
+
+/* Action Button Groups */
+.gaal-action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .gaal-summary-cards {
@@ -484,5 +774,10 @@
     
     .gaal-language-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .gaal-modal-content {
+        width: 95%;
+        margin: 10px;
     }
 }

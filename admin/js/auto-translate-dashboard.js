@@ -339,6 +339,11 @@
             this.gaps = [];
             this.selectedGaps = new Set();
             
+            // Translations tab state
+            this.existingTranslations = [];
+            this.selectedTranslations = [];
+            this.currentReviewPostId = null;
+            
             this.init();
         }
         
@@ -371,7 +376,7 @@
             $('#btn-translate-all').on('click', () => this.translateAll());
             $('#btn-translate-selected').on('click', () => this.translateSelected());
             
-            // Select all
+            // Select all (gaps tab)
             $('#select-all-gaps, #select-all-header').on('change', (e) => this.handleSelectAll(e));
             
             // Filters
@@ -384,6 +389,34 @@
             
             // History refresh
             $('#btn-refresh-history').on('click', () => this.loadHistory());
+            
+            // =============================================
+            // Translations Tab Events
+            // =============================================
+            
+            // Load translations
+            $('#btn-load-translations').on('click', () => this.loadTranslations());
+            
+            // Translations filters
+            $('#translations-filter-post-type, #translations-filter-language, #translations-filter-status').on('change', () => this.loadTranslations());
+            
+            // Select all (translations tab)
+            $('#select-all-translations, #select-all-translations-header').on('change', (e) => this.handleSelectAllTranslations(e));
+            
+            // Re-translate and LLM review buttons
+            $('#btn-retranslate-selected').on('click', () => this.retranslateSelected());
+            $('#btn-llm-review-selected').on('click', () => this.llmReviewSelected());
+            
+            // Modal controls
+            $('.gaal-modal-close, #btn-close-review').on('click', () => this.closeModal());
+            $('#btn-apply-improvement').on('click', () => this.applyLLMImprovement());
+            
+            // Close modal on background click
+            $('#llm-review-modal').on('click', (e) => {
+                if ($(e.target).is('#llm-review-modal')) {
+                    this.closeModal();
+                }
+            });
         }
         
         setupQueueCallbacks() {
@@ -860,6 +893,381 @@
         async loadHistory() {
             // TODO: Implement history loading from translation jobs
             console.log('Load history not yet implemented');
+        }
+        
+        // =============================================
+        // Translations Tab Methods
+        // =============================================
+        
+        /**
+         * Load existing translations
+         */
+        async loadTranslations() {
+            const $btn = $('#btn-load-translations');
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner is-active" style="float:none;margin:0"></span> Loading...');
+            
+            try {
+                const postType = $('#translations-filter-post-type').val();
+                const language = $('#translations-filter-language').val();
+                const status = $('#translations-filter-status').val();
+                
+                const response = await $.ajax({
+                    url: gaalAutoTranslate.apiUrl + 'translate/existing',
+                    method: 'GET',
+                    beforeSend: (xhr) => {
+                        xhr.setRequestHeader('X-WP-Nonce', gaalAutoTranslate.nonce);
+                    },
+                    data: {
+                        post_type: postType,
+                        language: language,
+                        status: status,
+                    },
+                });
+                
+                if (response.success) {
+                    this.existingTranslations = response.translations;
+                    this.renderTranslationsTable();
+                }
+            } catch (error) {
+                console.error('Load translations failed:', error);
+                alert(gaalAutoTranslate.strings.error_occurred || 'An error occurred');
+            } finally {
+                $btn.prop('disabled', false).html(originalText);
+            }
+        }
+        
+        renderTranslationsTable() {
+            const $tbody = $('#translations-tbody');
+            $tbody.empty();
+            
+            if (!this.existingTranslations || this.existingTranslations.length === 0) {
+                $tbody.html('<tr class="gaal-empty-row"><td colspan="8">No translations found.</td></tr>');
+                $('#no-translations-message').show();
+                return;
+            }
+            
+            $('#no-translations-message').hide();
+            
+            this.existingTranslations.forEach((t) => {
+                const scoreHtml = this.renderScoreBadge(t.evaluation);
+                const statusHtml = `<span class="status-badge status-${t.status}">${t.status}</span>`;
+                const sourceLink = t.source_edit_link 
+                    ? `<a href="${t.source_edit_link}" target="_blank" title="${this.escapeHtml(t.source_title || '')}">${this.truncate(t.source_title || 'View', 25)}</a>`
+                    : '—';
+                
+                const row = `
+                    <tr data-post-id="${t.id}" data-source-id="${t.source_post_id || ''}">
+                        <td class="check-column">
+                            <input type="checkbox" class="translation-checkbox" value="${t.id}" 
+                                data-source-id="${t.source_post_id || ''}"
+                                data-language="${t.language}"
+                                data-title="${this.escapeHtml(t.title)}">
+                        </td>
+                        <td class="column-title">
+                            <strong><a href="${t.edit_link}" target="_blank">${this.escapeHtml(t.title)}</a></strong>
+                        </td>
+                        <td class="column-source">${sourceLink}</td>
+                        <td class="column-language">
+                            <span class="lang-badge">${t.language.toUpperCase()}</span>
+                        </td>
+                        <td class="column-type">${this.escapeHtml(t.post_type_label)}</td>
+                        <td class="column-status">${statusHtml}</td>
+                        <td class="column-score">${scoreHtml}</td>
+                        <td class="column-actions">
+                            <div class="gaal-action-buttons">
+                                <button type="button" class="button button-small btn-retranslate-single" 
+                                    data-post-id="${t.id}" 
+                                    data-source-id="${t.source_post_id || ''}"
+                                    data-language="${t.language}"
+                                    data-title="${this.escapeHtml(t.title)}"
+                                    title="Re-translate">
+                                    <span class="dashicons dashicons-update"></span>
+                                </button>
+                                <button type="button" class="button button-small btn-llm-review-single" 
+                                    data-post-id="${t.id}"
+                                    data-title="${this.escapeHtml(t.title)}"
+                                    data-language="${t.language}"
+                                    title="LLM Review">
+                                    <span class="dashicons dashicons-welcome-learn-more"></span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                $tbody.append(row);
+            });
+            
+            // Bind checkbox events
+            $('.translation-checkbox').on('change', () => this.updateTranslationsSelectedCount());
+            
+            // Bind action buttons
+            $('.btn-retranslate-single').on('click', (e) => this.retranslateSingle(e));
+            $('.btn-llm-review-single').on('click', (e) => this.llmReviewSingle(e));
+        }
+        
+        renderScoreBadge(evaluation) {
+            if (!evaluation || !evaluation.score) {
+                return '<span class="llm-score score-none">—</span>';
+            }
+            
+            const score = evaluation.score;
+            let scoreClass = 'score-medium';
+            if (score >= 80) scoreClass = 'score-high';
+            else if (score < 60) scoreClass = 'score-low';
+            
+            return `<span class="llm-score ${scoreClass}">${score}</span>`;
+        }
+        
+        handleSelectAllTranslations(e) {
+            const isChecked = $(e.target).is(':checked');
+            $('.translation-checkbox').prop('checked', isChecked);
+            $('#select-all-translations, #select-all-translations-header').prop('checked', isChecked);
+            this.updateTranslationsSelectedCount();
+        }
+        
+        updateTranslationsSelectedCount() {
+            const checked = $('.translation-checkbox:checked');
+            const count = checked.length;
+            $('#translations-selected-count').text(`${count} selected`);
+            
+            this.selectedTranslations = [];
+            checked.each((i, el) => {
+                this.selectedTranslations.push({
+                    postId: parseInt($(el).val()),
+                    sourceId: parseInt($(el).data('source-id')) || null,
+                    language: $(el).data('language'),
+                    title: $(el).data('title'),
+                });
+            });
+            
+            $('#btn-retranslate-selected, #btn-llm-review-selected').prop('disabled', count === 0);
+        }
+        
+        /**
+         * Re-translate a single post
+         */
+        retranslateSingle(e) {
+            const $btn = $(e.currentTarget);
+            const postId = $btn.data('post-id');
+            const sourceId = $btn.data('source-id');
+            const language = $btn.data('language');
+            const title = $btn.data('title');
+            
+            if (!sourceId) {
+                alert('Cannot re-translate: English source post not found.');
+                return;
+            }
+            
+            if (!confirm(`Re-translate "${title}" from English?\n\nThis will overwrite the current translation.`)) {
+                return;
+            }
+            
+            const items = [{
+                source_post_id: sourceId,
+                target_post_id: postId,
+                language: language,
+                title: title,
+            }];
+            
+            this.startTranslationQueue(items);
+        }
+        
+        /**
+         * Re-translate selected posts
+         */
+        retranslateSelected() {
+            if (!this.selectedTranslations || this.selectedTranslations.length === 0) {
+                return;
+            }
+            
+            const validItems = this.selectedTranslations.filter(t => t.sourceId);
+            
+            if (validItems.length === 0) {
+                alert('No selected translations have an English source post.');
+                return;
+            }
+            
+            if (!confirm(`Re-translate ${validItems.length} post(s) from English?\n\nThis will overwrite the current translations.`)) {
+                return;
+            }
+            
+            const items = validItems.map(t => ({
+                source_post_id: t.sourceId,
+                target_post_id: t.postId,
+                language: t.language,
+                title: t.title,
+            }));
+            
+            this.startTranslationQueue(items);
+        }
+        
+        /**
+         * LLM review a single post
+         */
+        async llmReviewSingle(e) {
+            const $btn = $(e.currentTarget);
+            const postId = $btn.data('post-id');
+            const title = $btn.data('title');
+            const language = $btn.data('language');
+            
+            this.currentReviewPostId = postId;
+            this.showLLMReviewModal(postId, title, language);
+        }
+        
+        /**
+         * LLM review selected posts (one at a time)
+         */
+        async llmReviewSelected() {
+            if (!this.selectedTranslations || this.selectedTranslations.length === 0) {
+                return;
+            }
+            
+            // For now, just review the first one
+            const first = this.selectedTranslations[0];
+            this.currentReviewPostId = first.postId;
+            this.showLLMReviewModal(first.postId, first.title, first.language);
+        }
+        
+        showLLMReviewModal(postId, title, language) {
+            const langName = gaalAutoTranslate.languages[language]?.name || language.toUpperCase();
+            
+            $('#review-post-title').text(title);
+            $('#review-language').text(langName);
+            $('#review-progress').show();
+            $('#review-result').hide();
+            $('#llm-review-modal').show();
+            
+            this.runLLMEvaluation(postId);
+        }
+        
+        async runLLMEvaluation(postId) {
+            try {
+                const response = await $.ajax({
+                    url: gaalAutoTranslate.apiUrl + 'translate/llm-evaluate',
+                    method: 'POST',
+                    beforeSend: (xhr) => {
+                        xhr.setRequestHeader('X-WP-Nonce', gaalAutoTranslate.nonce);
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({ post_id: postId }),
+                });
+                
+                if (response.success) {
+                    this.showEvaluationResult(response.evaluation);
+                } else {
+                    throw new Error(response.message || 'Evaluation failed');
+                }
+            } catch (error) {
+                console.error('LLM evaluation failed:', error);
+                $('#review-progress').hide();
+                alert('LLM evaluation failed: ' + (error.responseJSON?.message || error.message || 'Unknown error'));
+                this.closeModal();
+            }
+        }
+        
+        showEvaluationResult(evaluation) {
+            $('#review-progress').hide();
+            $('#review-score').text(evaluation.score);
+            
+            // Color the score based on value
+            const $scoreValue = $('#review-score');
+            $scoreValue.removeClass('score-high score-medium score-low');
+            if (evaluation.score >= 80) $scoreValue.addClass('score-high');
+            else if (evaluation.score < 60) $scoreValue.addClass('score-low');
+            else $scoreValue.addClass('score-medium');
+            
+            // Build detailed feedback HTML
+            let feedbackHtml = '';
+            
+            // Summary
+            if (evaluation.summary) {
+                feedbackHtml += `<p><strong>${this.escapeHtml(evaluation.summary)}</strong></p>`;
+            }
+            
+            // Issues found
+            if (evaluation.issues && evaluation.issues.length > 0) {
+                feedbackHtml += '<div class="review-section"><h5>Issues Found:</h5><ul>';
+                evaluation.issues.forEach(issue => {
+                    feedbackHtml += `<li>${this.escapeHtml(issue)}</li>`;
+                });
+                feedbackHtml += '</ul></div>';
+            }
+            
+            // What improvements would do
+            if (evaluation.improvements && evaluation.improvements.length > 0) {
+                feedbackHtml += '<div class="review-section"><h5>If Improved, the LLM Would:</h5><ul>';
+                evaluation.improvements.forEach(imp => {
+                    feedbackHtml += `<li>${this.escapeHtml(imp)}</li>`;
+                });
+                feedbackHtml += '</ul></div>';
+            }
+            
+            // Detailed feedback paragraph
+            if (evaluation.feedback && !evaluation.summary) {
+                // Only show raw feedback if we don't have structured data
+                feedbackHtml += `<p>${this.escapeHtml(evaluation.feedback).replace(/\n/g, '<br>')}</p>`;
+            } else if (evaluation.feedback && evaluation.feedback !== evaluation.summary) {
+                // Show additional detail if it's different from summary
+                const cleanFeedback = evaluation.feedback
+                    .replace(/Issues found:[\s\S]*?(?=If improved|$)/gi, '')
+                    .replace(/If improved[\s\S]*/gi, '')
+                    .trim();
+                if (cleanFeedback && cleanFeedback !== evaluation.summary) {
+                    feedbackHtml += `<div class="review-section"><h5>Additional Notes:</h5><p>${this.escapeHtml(cleanFeedback).replace(/\n/g, '<br>')}</p></div>`;
+                }
+            }
+            
+            if (!feedbackHtml) {
+                feedbackHtml = '<p>No detailed feedback available.</p>';
+            }
+            
+            $('#review-feedback').html(feedbackHtml);
+            $('#review-result').show();
+        }
+        
+        async applyLLMImprovement() {
+            if (!this.currentReviewPostId) return;
+            
+            const $btn = $('#btn-apply-improvement');
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner is-active" style="float:none;margin:0"></span> Improving...');
+            
+            try {
+                const response = await $.ajax({
+                    url: gaalAutoTranslate.apiUrl + 'translate/llm-improve',
+                    method: 'POST',
+                    beforeSend: (xhr) => {
+                        xhr.setRequestHeader('X-WP-Nonce', gaalAutoTranslate.nonce);
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({ post_id: this.currentReviewPostId }),
+                });
+                
+                if (response.success) {
+                    alert('Translation improved successfully!');
+                    this.closeModal();
+                    this.loadTranslations(); // Refresh the table
+                } else {
+                    throw new Error(response.message || 'Improvement failed');
+                }
+            } catch (error) {
+                console.error('LLM improvement failed:', error);
+                alert('LLM improvement failed: ' + (error.responseJSON?.message || error.message || 'Unknown error'));
+            } finally {
+                $btn.prop('disabled', false).html(originalText);
+            }
+        }
+        
+        closeModal() {
+            $('#llm-review-modal').hide();
+            this.currentReviewPostId = null;
+        }
+        
+        truncate(str, maxLength) {
+            if (!str) return '';
+            if (str.length <= maxLength) return str;
+            return str.substring(0, maxLength) + '...';
         }
         
         escapeHtml(text) {
