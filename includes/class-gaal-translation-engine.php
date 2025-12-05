@@ -327,5 +327,55 @@ if (!class_exists('GAAL_Translation_Engine')) {
             // Perform translation
             return $this->translate_post($post_id, $target_language);
         }
+        
+        // =====================================================================
+        // CHUNKED TRANSLATION METHODS
+        // =====================================================================
+        
+        /**
+         * Translate a single piece of text
+         * 
+         * This is a simpler method for chunked translation that just translates
+         * text without the full post workflow.
+         * 
+         * @param string $text Text to translate
+         * @param string $target_language Target language code
+         * @param string $source_language Source language code (default: 'en')
+         * @return string|WP_Error Translated text or error
+         */
+        public function translate_text($text, $target_language, $source_language = 'en') {
+            // Check if Google Translate is configured
+            if (!$this->google_translate->is_configured()) {
+                return new WP_Error('api_not_configured', __('Google Translate API is not configured', 'kingdom-training'));
+            }
+            
+            // Handle empty text
+            if (empty(trim($text))) {
+                return '';
+            }
+            
+            // Translate using Google Translate
+            $translated = $this->google_translate->translate($text, $target_language, $source_language);
+            
+            if (is_wp_error($translated)) {
+                GAAL_Translation_Logger::error('Text translation failed', array(
+                    'error' => $translated->get_error_message(),
+                    'text_length' => strlen($text),
+                    'target_language' => $target_language,
+                ));
+                return $translated;
+            }
+            
+            return $translated;
+        }
+        
+        /**
+         * Check if Google Translate is configured
+         * 
+         * @return bool
+         */
+        public function is_google_translate_configured() {
+            return $this->google_translate->is_configured();
+        }
     }
 }

@@ -304,6 +304,173 @@ if (!class_exists('GAAL_Translation_Job')) {
         public function get_id() {
             return $this->job_id;
         }
+        
+        // =====================================================================
+        // CHUNKED TRANSLATION METHODS
+        // =====================================================================
+        
+        /**
+         * Store content chunks for chunked translation
+         * 
+         * @param array $chunks Array of content chunks
+         * @return bool Success
+         */
+        public function set_chunks($chunks) {
+            if (!$this->job_id) {
+                return false;
+            }
+            
+            update_post_meta($this->job_id, '_translation_chunks', $chunks);
+            update_post_meta($this->job_id, '_translation_last_updated', current_time('mysql'));
+            
+            return true;
+        }
+        
+        /**
+         * Get all content chunks
+         * 
+         * @return array Array of content chunks
+         */
+        public function get_chunks() {
+            if (!$this->job_id) {
+                return array();
+            }
+            
+            $chunks = get_post_meta($this->job_id, '_translation_chunks', true);
+            return is_array($chunks) ? $chunks : array();
+        }
+        
+        /**
+         * Get a specific content chunk by index
+         * 
+         * @param int $index Chunk index
+         * @return string|null Chunk content or null if not found
+         */
+        public function get_chunk($index) {
+            $chunks = $this->get_chunks();
+            return isset($chunks[$index]) ? $chunks[$index] : null;
+        }
+        
+        /**
+         * Store a translated chunk
+         * 
+         * @param int $index Chunk index
+         * @param string $translated_content Translated chunk content
+         * @return bool Success
+         */
+        public function set_translated_chunk($index, $translated_content) {
+            if (!$this->job_id) {
+                return false;
+            }
+            
+            $translated_chunks = get_post_meta($this->job_id, '_translation_translated_chunks', true);
+            if (!is_array($translated_chunks)) {
+                $translated_chunks = array();
+            }
+            
+            $translated_chunks[$index] = $translated_content;
+            update_post_meta($this->job_id, '_translation_translated_chunks', $translated_chunks);
+            update_post_meta($this->job_id, '_translation_last_updated', current_time('mysql'));
+            
+            return true;
+        }
+        
+        /**
+         * Get a specific translated chunk
+         * 
+         * @param int $index Chunk index
+         * @return string|null Translated chunk or null if not found
+         */
+        public function get_translated_chunk($index) {
+            if (!$this->job_id) {
+                return null;
+            }
+            
+            $translated_chunks = get_post_meta($this->job_id, '_translation_translated_chunks', true);
+            if (!is_array($translated_chunks)) {
+                return null;
+            }
+            
+            return isset($translated_chunks[$index]) ? $translated_chunks[$index] : null;
+        }
+        
+        /**
+         * Get all translated chunks
+         * 
+         * @return array Array of translated chunks
+         */
+        public function get_all_translated_chunks() {
+            if (!$this->job_id) {
+                return array();
+            }
+            
+            $translated_chunks = get_post_meta($this->job_id, '_translation_translated_chunks', true);
+            return is_array($translated_chunks) ? $translated_chunks : array();
+        }
+        
+        /**
+         * Set job metadata (title, excerpt, etc.)
+         * 
+         * @param string $key Metadata key
+         * @param mixed $value Metadata value
+         * @return bool Success
+         */
+        public function set_meta($key, $value) {
+            if (!$this->job_id) {
+                return false;
+            }
+            
+            update_post_meta($this->job_id, '_translation_meta_' . $key, $value);
+            update_post_meta($this->job_id, '_translation_last_updated', current_time('mysql'));
+            
+            return true;
+        }
+        
+        /**
+         * Get job metadata
+         * 
+         * @param string $key Metadata key
+         * @return mixed Metadata value
+         */
+        public function get_meta($key) {
+            if (!$this->job_id) {
+                return null;
+            }
+            
+            return get_post_meta($this->job_id, '_translation_meta_' . $key, true);
+        }
+        
+        /**
+         * Set translated metadata (title, excerpt, etc.)
+         * 
+         * @param string $key Metadata key
+         * @param mixed $value Translated value
+         * @return bool Success
+         */
+        public function set_translated_meta($key, $value) {
+            if (!$this->job_id) {
+                return false;
+            }
+            
+            update_post_meta($this->job_id, '_translation_translated_' . $key, $value);
+            update_post_meta($this->job_id, '_translation_last_updated', current_time('mysql'));
+            
+            return true;
+        }
+        
+        /**
+         * Get translated metadata
+         * 
+         * @param string $key Metadata key
+         * @return mixed Translated value
+         */
+        public function get_translated_meta($key) {
+            if (!$this->job_id) {
+                return null;
+            }
+            
+            return get_post_meta($this->job_id, '_translation_translated_' . $key, true);
+        }
     }
 }
 

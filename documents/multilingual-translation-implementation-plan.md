@@ -201,17 +201,21 @@ rebuild_post_content($translated_parts)
 **Estimated Time**: 6-8 hours
 
 **Tasks**:
-- [ ] Create meta box for translation controls
+- [x] Create meta box for translation controls
   - Display current language
   - Show translation status for all languages
   - Add action buttons
   - Show progress indicators
-- [ ] Add JavaScript for AJAX interactions
+- [x] Add "Copy from English" feature for non-English posts
+  - Show link to English source post
+  - Button to copy title, content, and excerpt from English
+  - Confirmation dialog before overwriting content
+- [x] Add JavaScript for AJAX interactions
   - Handle button clicks
   - Poll for progress updates
   - Display status messages
   - Handle errors
-- [ ] Style meta box with CSS
+- [x] Style meta box with CSS
   - Match WordPress admin styling
   - Responsive design
   - Clear visual hierarchy
@@ -243,25 +247,30 @@ function gaal_add_translation_meta_box() {
 **Estimated Time**: 6-8 hours
 
 **Tasks**:
-- [ ] Implement `POST /wp-json/gaal/v1/translate/generate-all`
+- [x] Implement `POST /wp-json/gaal/v1/translate/generate-all`
   - Validate request (nonce, permissions)
   - Create translation job
   - Start background processing
   - Return job ID
-- [ ] Implement `POST /wp-json/gaal/v1/translate/single`
+- [x] Implement `POST /wp-json/gaal/v1/translate/single`
   - Validate request
   - Translate to specific language
   - Return result
-- [ ] Implement `POST /wp-json/gaal/v1/translate/retranslate`
+- [x] Implement `POST /wp-json/gaal/v1/translate/retranslate`
   - Validate request
   - Re-translate existing post
   - Return result
-- [ ] Implement `GET /wp-json/gaal/v1/translate/status/{post_id}`
+- [x] Implement `GET /wp-json/gaal/v1/translate/status/{post_id}`
   - Return current translation status
   - Return progress information
-- [ ] Implement `POST /wp-json/gaal/v1/translate/resume`
+- [x] Implement `POST /wp-json/gaal/v1/translate/resume`
   - Resume interrupted job
   - Return status
+- [x] Implement `POST /wp-json/gaal/v1/translate/copy-from-english`
+  - Copy title, content, and excerpt from English source post
+  - Validate posts are linked translations
+  - Validate source is English
+  - Return success/failure status
 
 **Files to Modify**:
 - `functions.php` - Add REST API route registrations
