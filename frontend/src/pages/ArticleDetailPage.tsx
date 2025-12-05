@@ -39,6 +39,13 @@ export default function ArticleDetailPage() {
       .slice(0, 9);
   }, [articlesData, article, targetLang]);
 
+  // Process content to add dimensions to images and prevent layout shift
+  // NOTE: This must be before early returns to maintain consistent hook order
+  const processedContent = useMemo(() => {
+    if (!article?.content?.rendered) return '';
+    return processImageWidths(article.content.rendered);
+  }, [article?.content?.rendered]);
+
   const loading = articleLoading || relatedLoading;
 
   if (loading) {
@@ -69,9 +76,6 @@ export default function ArticleDetailPage() {
     ? stripHtml(article.excerpt.rendered) 
     : stripHtml(article.content.rendered).substring(0, 160);
   const articleKeywords = `M2DMM, ${articleTitle}, disciple making movements, media strategy, ${articleTitle.toLowerCase()}`;
-  
-  // Process content to add dimensions to images and prevent layout shift
-  const processedContent = useMemo(() => processImageWidths(article.content.rendered), [article.content.rendered]);
   
   const siteUrl = typeof window !== 'undefined' 
     ? window.location.origin 

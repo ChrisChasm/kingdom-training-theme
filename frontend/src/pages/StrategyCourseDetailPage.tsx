@@ -76,6 +76,13 @@ export default function StrategyCourseDetailPage() {
     }
   }, [course]);
 
+  // Process content to respect image width attributes
+  // NOTE: This must be before early returns to maintain consistent hook order
+  const processedContent = useMemo(() => {
+    if (!course?.content?.rendered) return '';
+    return processImageWidths(course.content.rendered);
+  }, [course?.content?.rendered]);
+
   const loading = courseLoading || stepsLoading || coursesLoading;
 
   if (loading) {
@@ -108,9 +115,6 @@ export default function StrategyCourseDetailPage() {
     ? stripHtml(course.excerpt.rendered) 
     : stripHtml(course.content.rendered).substring(0, 160);
   const courseKeywords = `M2DMM strategy course, ${courseTitle}, MVP course step ${course.steps || ''}, media to movements, disciple making strategy, ${courseTitle.toLowerCase()}`;
-  
-  // Process content to respect image width attributes
-  const processedContent = useMemo(() => processImageWidths(course.content.rendered), [course.content.rendered]);
   
   const siteUrl = typeof window !== 'undefined' 
     ? window.location.origin 
